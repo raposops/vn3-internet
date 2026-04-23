@@ -8,11 +8,13 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* VN3 Internet Brand Colors */
+    /* VN3 Internet Brand Colors - Paleta Profissional */
     --vn3-navy: 215 65% 22%;
-    --vn3-navy-light: 215 55% 32%;
-    --vn3-yellow: 48 100% 50%;
-    --vn3-yellow-dark: 48 100% 45%;
+    --vn3-navy-light: 215 55% 35%;
+    --vn3-navy-dark: 215 70% 15%;
+    --vn3-cyan: 195 85% 55%;
+    --vn3-cyan-light: 195 80% 65%;
+    --vn3-cyan-dark: 195 90% 45%;
 
     --background: 220 20% 98%;
     --foreground: 215 65% 18%;
@@ -25,7 +27,7 @@ All colors MUST be HSL.
 
     --primary: 215 65% 22%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 215 55% 32%;
+    --primary-glow: 215 55% 35%;
 
     --secondary: 220 20% 96%;
     --secondary-foreground: 215 65% 22%;
@@ -33,13 +35,13 @@ All colors MUST be HSL.
     --muted: 220 15% 96%;
     --muted-foreground: 215 20% 45%;
 
-    --accent: 48 100% 50%;
+    --accent: 195 85% 55%;
     --accent-foreground: 215 65% 18%;
 
     --success: 145 65% 42%;
     --success-foreground: 0 0% 100%;
 
-    --gradient-card: linear-gradient(135deg, hsl(215 65% 22%), hsl(215 55% 32%));
+    --gradient-card: linear-gradient(135deg, hsl(215 65% 22%), hsl(215 55% 35%));
     --gradient-soft: linear-gradient(135deg, hsl(220 20% 98%), hsl(220 15% 96%));
     --shadow-card: 0 10px 30px -10px hsl(215 65% 22% / 0.25);
     --shadow-soft: 0 4px 20px -8px hsl(215 30% 50% / 0.15);
