@@ -51,8 +51,8 @@ const SplashScreen = ({ onFinish }: SplashScreenProps) => {
             />
           </div>
 
-          {/* ── Content ── */}
-          <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-8">
+          {/* ── Content — centralizado absoluto na tela ── */}
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center px-8">
             {/* Glow atrás do logo */}
             <motion.div
               initial={{ opacity: 0, scale: 0.5 }}
@@ -86,8 +86,8 @@ const SplashScreen = ({ onFinish }: SplashScreenProps) => {
             </motion.p>
           </div>
 
-          {/* ── Progress bar no rodapé ── */}
-          <div className="relative z-10 px-12 pb-14">
+          {/* ── Progress bar — fixo no rodapé ── */}
+          <div className="absolute bottom-0 left-0 right-0 z-10 px-12 pb-14">
             <div className="h-[3px] w-full overflow-hidden rounded-full bg-white/10">
               <motion.div
                 initial={{ width: "0%" }}
