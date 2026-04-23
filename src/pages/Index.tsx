@@ -13,12 +13,9 @@ import {
   Clock,
   Inbox,
   Unlock,
-  Globe,
-  Signal,
   CreditCard,
   Receipt,
   Calendar,
-  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -47,13 +44,6 @@ const plans = [
     icon: Zap,
     usage: 78,
   },
-];
-
-const navItems: { key: TabKey; label: string; icon: typeof Home }[] = [
-  { key: "home", label: "Início", icon: Home },
-  { key: "plans", label: "Meus Planos", icon: Layers },
-  { key: "finance", label: "Financeiro", icon: Wallet },
-  { key: "support", label: "Suporte", icon: HeadphonesIcon },
 ];
 
 const previousInvoices = [
