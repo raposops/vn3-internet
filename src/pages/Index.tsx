@@ -274,8 +274,8 @@ const Index = () => {
         <h3 className="font-semibold text-foreground mb-3">Fale Conosco</h3>
         <div className="space-y-2">
           <a href="tel:08001234567" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-smooth">
-            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
-              <HeadphonesIcon className="w-4 h-4 text-accent-foreground" />
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <HeadphonesIcon className="w-4 h-4 text-primary" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">0800 123 4567</p>
