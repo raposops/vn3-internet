@@ -61,12 +61,12 @@ const Index = () => {
     <>
       {/* Greeting + Connection status */}
       <section className="px-5 pt-4">
-        <div className="inline-flex items-center gap-2 rounded-full bg-card px-3 py-1.5 shadow-soft border border-border">
+        <div className="inline-flex items-center gap-2 rounded-full bg-primary/5 px-3 py-1.5 border border-primary/10">
           <span className="relative flex h-2.5 w-2.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-success" />
           </span>
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-xs font-medium text-primary/80">
             Sua conexão está Online
           </span>
         </div>
@@ -92,7 +92,7 @@ const Index = () => {
             <p className="mt-2 text-sm opacity-80">Vence em 10/11/2023</p>
           </div>
 
-          <Button className="relative mt-6 h-12 w-full rounded-2xl bg-accent text-base font-semibold text-accent-foreground shadow-lg hover:bg-accent/90">
+          <Button className="relative mt-6 h-12 w-full rounded-2xl bg-accent text-base font-semibold text-white shadow-lg hover:bg-accent/90">
             Pagar com Pix (Copia e Cola)
           </Button>
 
@@ -120,13 +120,13 @@ const Index = () => {
             return (
               <article
                 key={plan.name}
-                className="flex w-64 shrink-0 flex-col rounded-3xl bg-card p-5 shadow-soft transition-smooth hover:-translate-y-1 hover:shadow-card"
+                className="flex w-64 shrink-0 flex-col rounded-3xl bg-card p-5 shadow-soft transition-smooth hover:-translate-y-1 hover:shadow-card border border-border"
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
                     <Icon className="h-5 w-5 text-primary" />
                   </div>
-                  <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
+                  <span className="rounded-full bg-primary/5 px-3 py-1 text-xs font-semibold text-primary border border-primary/10">
                     {plan.tag}
                   </span>
                 </div>
@@ -144,12 +144,12 @@ const Index = () => {
                 <div className="mt-4">
                   <div className="mb-1.5 flex items-center justify-between text-xs">
                     <span className="font-medium text-muted-foreground">Consumo do mês</span>
-                    <span className="font-semibold text-foreground">{plan.usage}%</span>
+                    <span className="font-semibold text-primary">{plan.usage}%</span>
                   </div>
-                  <Progress value={plan.usage} className="h-2 bg-muted" />
+                  <Progress value={plan.usage} className="h-2 bg-primary/10" />
                 </div>
 
-                <Button className="mt-5 h-11 w-full rounded-2xl bg-accent font-semibold text-accent-foreground hover:bg-accent/90">
+                <Button className="mt-5 h-11 w-full rounded-2xl bg-accent font-semibold text-white hover:bg-accent/90">
                   Mudar para este plano
                 </Button>
               </article>
@@ -193,7 +193,7 @@ const Index = () => {
           </div>
         </div>
 
-        <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
+        <Button className="w-full bg-accent text-white hover:bg-accent/90 font-semibold">
           Acessar
         </Button>
       </div>
@@ -274,8 +274,8 @@ const Index = () => {
         <h3 className="font-semibold text-foreground mb-3">Fale Conosco</h3>
         <div className="space-y-2">
           <a href="tel:08001234567" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-smooth">
-            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
-              <HeadphonesIcon className="w-4 h-4 text-accent-foreground" />
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <HeadphonesIcon className="w-4 h-4 text-primary" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">0800 123 4567</p>
