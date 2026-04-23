@@ -15,6 +15,10 @@ import {
   Unlock,
   Globe,
   Signal,
+  CreditCard,
+  Receipt,
+  Calendar,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -164,6 +168,133 @@ const Index = () => {
         </div>
       </section>
     </>
+  );
+
+  const renderPlansContent = () => (
+    <div className="space-y-4">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground">Meus Planos</h1>
+        <p className="text-muted-foreground text-sm mt-1">Gerencie seus planos ativos</p>
+      </div>
+
+      <div className="bg-card rounded-2xl p-5 shadow-soft border border-border">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Wifi className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground">Fibra 300 Mega</h3>
+            <p className="text-sm text-muted-foreground">Plano atual</p>
+          </div>
+        </div>
+
+        <div className="space-y-3 mb-4">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Download</span>
+            <span className="font-medium text-foreground">300 Mbps</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Upload</span>
+            <span className="font-medium text-foreground">150 Mbps</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Wi-Fi Plus</span>
+            <span className="font-medium text-success">Incluído</span>
+          </div>
+        </div>
+
+        <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
+          Acessar
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderFinanceContent = () => (
+    <div className="space-y-4">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
+        <p className="text-muted-foreground text-sm mt-1">Histórico de faturas e pagamentos</p>
+      </div>
+
+      {hasInvoices ? (
+        <div className="space-y-3">
+          {previousInvoices.map((invoice) => (
+            <div
+              key={invoice.id}
+              className="bg-card rounded-xl p-4 shadow-soft border border-border flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-success" />
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground text-sm">{invoice.month}</p>
+                  <p className="text-xs text-muted-foreground">Pago em {invoice.paidAt}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-foreground">{invoice.amount}</p>
+                <span className="text-xs font-medium text-success">{invoice.status}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+            <Inbox className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Nenhuma fatura encontrada</h3>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            Você ainda não possui faturas registradas. Elas aparecerão aqui quando disponíveis.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderSupportContent = () => (
+    <div className="space-y-4">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground">Suporte</h1>
+        <p className="text-muted-foreground text-sm mt-1">Como podemos ajudar?</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          { icon: Wifi, label: "Problemas de Conexão" },
+          { icon: Receipt, label: "2ª Via de Boleto" },
+          { icon: Calendar, label: "Agendar Visita" },
+          { icon: CreditCard, label: "Alterar Dados" },
+        ].map((item, index) => (
+          <button
+            key={index}
+            className="bg-card rounded-xl p-4 shadow-soft border border-border flex flex-col items-center gap-2 hover:bg-muted transition-smooth"
+          >
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <item.icon className="w-5 h-5 text-primary" />
+            </div>
+            <span className="text-xs font-medium text-foreground text-center">{item.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-6 bg-card rounded-xl p-4 shadow-soft border border-border">
+        <h3 className="font-semibold text-foreground mb-3">Fale Conosco</h3>
+        <div className="space-y-2">
+          <a href="tel:08001234567" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-smooth">
+            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+              <HeadphonesIcon className="w-4 h-4 text-accent-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">0800 123 4567</p>
+              <p className="text-xs text-muted-foreground">Atendimento 24h</p>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
   );
 
   return (
