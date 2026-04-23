@@ -7,7 +7,7 @@ interface SplashScreenProps {
   onFinish: () => void;
 }
 
-const SPLASH_DURATION = 3000; // ms
+const SPLASH_DURATION = 5000; // ms
 
 const SplashScreen = ({ onFinish }: SplashScreenProps) => {
   const [isExiting, setIsExiting] = useState(false);
