@@ -17,6 +17,9 @@ import {
   CreditCard,
   Receipt,
   Calendar,
+  Copy,
+  FileDown,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -47,16 +50,59 @@ const plans = [
   },
 ];
 
-const previousInvoices = [
-  { id: 1, month: "Outubro 2023", amount: "R$ 99,90", status: "Paga", paidAt: "10/10/2023" },
-  { id: 2, month: "Setembro 2023", amount: "R$ 99,90", status: "Paga", paidAt: "10/09/2023" },
-  { id: 3, month: "Agosto 2023", amount: "R$ 99,90", status: "Paga", paidAt: "10/08/2023" },
-  { id: 4, month: "Julho 2023", amount: "R$ 99,90", status: "Paga", paidAt: "10/07/2023" },
+const invoices = [
+  {
+    id: 1,
+    month: "Abril/2026",
+    amount: "R$ 99,90",
+    status: "aberto" as const,
+    dueDate: "10/04/2026",
+  },
+  {
+    id: 2,
+    month: "Março/2026",
+    amount: "R$ 99,90",
+    status: "a_vencer" as const,
+    dueDate: "10/03/2026",
+  },
+  {
+    id: 3,
+    month: "Fevereiro/2026",
+    amount: "R$ 99,90",
+    status: "pago" as const,
+    paidAt: "08/02/2026",
+  },
 ];
+
+const statusConfig = {
+  pago: {
+    label: "Pago",
+    bgClass: "bg-success/10",
+    textClass: "text-success",
+    borderClass: "border-success/20",
+    icon: CheckCircle2,
+    iconBgClass: "bg-success/10",
+  },
+  a_vencer: {
+    label: "A vencer",
+    bgClass: "bg-destructive/10",
+    textClass: "text-destructive",
+    borderClass: "border-destructive/20",
+    icon: Clock,
+    iconBgClass: "bg-destructive/10",
+  },
+  aberto: {
+    label: "Aberto",
+    bgClass: "bg-destructive/10",
+    textClass: "text-destructive",
+    borderClass: "border-destructive/20",
+    icon: AlertCircle,
+    iconBgClass: "bg-destructive/10",
+  },
+};
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("home");
-  const [hasInvoices] = useState(true);
 
   const renderHomeContent = () => (
     <>
@@ -202,46 +248,111 @@ const Index = () => {
   );
 
   const renderFinanceContent = () => (
-    <div className="space-y-4">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
+    <div className="space-y-5">
+      {/* Section title */}
+      <div>
+        <h1 className="text-xl font-bold text-foreground">Suas Faturas</h1>
         <p className="text-muted-foreground text-sm mt-1">Histórico de faturas e pagamentos</p>
       </div>
 
-      {hasInvoices ? (
-        <div className="space-y-3">
-          {previousInvoices.map((invoice) => (
-            <div
+      {/* Invoice Cards */}
+      <div className="space-y-4">
+        {invoices.map((invoice, index) => {
+          const config = statusConfig[invoice.status];
+          const StatusIcon = config.icon;
+          const isPaid = invoice.status === "pago";
+
+          return (
+            <article
               key={invoice.id}
-              className="bg-card rounded-xl p-4 shadow-soft border border-border flex items-center justify-between"
+              className="relative overflow-hidden rounded-2xl bg-card p-5 shadow-soft border border-border transition-smooth hover:-translate-y-0.5 hover:shadow-card"
+              style={{ animationDelay: `${index * 80}ms` }}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
-                  <CheckCircle2 className="w-5 h-5 text-success" />
+              {/* Decorative accent bar */}
+              <div
+                className={`absolute left-0 top-0 bottom-0 w-1 ${
+                  isPaid ? "bg-success" : "bg-destructive"
+                }`}
+              />
+
+              {/* Top row: month + badge */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${config.iconBgClass}`}
+                  >
+                    <StatusIcon className={`w-5 h-5 ${config.textClass}`} />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">{invoice.month}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isPaid
+                        ? `Pago em ${invoice.paidAt}`
+                        : `Vence em ${invoice.dueDate}`}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-foreground text-sm">{invoice.month}</p>
-                  <p className="text-xs text-muted-foreground">Pago em {invoice.paidAt}</p>
+
+                {/* Status Badge */}
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold border ${config.bgClass} ${config.textClass} ${config.borderClass}`}
+                >
+                  {config.label}
+                </span>
+              </div>
+
+              {/* Amount */}
+              <div className="mb-4">
+                <p className="text-3xl font-bold text-foreground tracking-tight">
+                  {invoice.amount}
+                </p>
+              </div>
+
+              {/* Action buttons */}
+              {!isPaid && (
+                <div className="flex gap-3">
+                  <Button
+                    className="flex-1 h-11 rounded-xl bg-accent font-semibold text-white hover:bg-accent/90 gap-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Pix Copia e Cola
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-11 w-11 rounded-xl border-border p-0 hover:bg-primary/5"
+                  >
+                    <FileDown className="w-5 h-5 text-primary" />
+                  </Button>
                 </div>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-foreground">{invoice.amount}</p>
-                <span className="text-xs font-medium text-success">{invoice.status}</span>
-              </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
+
+      {/* Trust Unlock CTA */}
+      <div className="pt-2 pb-4">
+        <button
+          type="button"
+          className="group relative w-full overflow-hidden rounded-2xl bg-gradient-card p-5 text-primary-foreground shadow-card transition-smooth hover:shadow-lg active:scale-[0.98]"
+        >
+          {/* Background glow effects */}
+          <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary-foreground/10 blur-2xl transition-smooth group-hover:bg-primary-foreground/15" />
+          <div className="pointer-events-none absolute -bottom-10 -left-8 h-28 w-28 rounded-full bg-primary-foreground/5 blur-2xl" />
+
+          <div className="relative flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-foreground/20 backdrop-blur-sm">
+              <Unlock className="h-6 w-6" />
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Inbox className="w-8 h-8 text-muted-foreground" />
+            <div className="text-left">
+              <p className="text-base font-bold">Solicitar Desbloqueio de Confiança</p>
+              <p className="mt-0.5 text-sm opacity-80">
+                Já efetuou o pagamento? Solicite a liberação imediata.
+              </p>
+            </div>
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">Nenhuma fatura encontrada</h3>
-          <p className="text-sm text-muted-foreground max-w-xs">
-            Você ainda não possui faturas registradas. Elas aparecerão aqui quando disponíveis.
-          </p>
-        </div>
-      )}
+        </button>
+      </div>
     </div>
   );
 
