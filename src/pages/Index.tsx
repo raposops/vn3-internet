@@ -193,7 +193,7 @@ const Index = () => {
           </div>
         </div>
 
-        <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
+        <Button className="w-full bg-accent text-white hover:bg-accent/90 font-semibold">
           Acessar
         </Button>
       </div>
