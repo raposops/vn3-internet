@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logoVn3 from "@/assets/logo-vn3.png";
 import {
   User,
   Menu,
@@ -297,9 +298,7 @@ const Index = () => {
           </div>
         </div>
         <div className="flex-1 flex justify-center">
-          <div className="w-24 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-            <span className="text-xs font-bold text-primary">VN3</span>
-          </div>
+          <img src={logoVn3} alt="VN3 Internet" className="h-10 w-auto object-contain" />
         </div>
         <button className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-smooth">
           <Menu className="w-5 h-5 text-foreground" />
