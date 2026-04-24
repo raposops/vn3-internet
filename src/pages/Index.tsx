@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DrawerMenu } from "@/components/DrawerMenu";
+import { ConsumptionCard } from "@/components/ConsumptionCard";
 import logoVn3 from "@/assets/logo-vn3.png";
 import plan300Bg from "@/assets/plan-300-gamer.png";
 import plan500Bg from "@/assets/plan-500-family.png";
@@ -305,6 +306,8 @@ const Index = () => {
           Acessar
         </Button>
       </div>
+
+      <ConsumptionCard />
     </div>
   );
 
