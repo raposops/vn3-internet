@@ -3,6 +3,7 @@ import logoVn3 from "@/assets/logo-vn3.png";
 import plan300Bg from "@/assets/plan-300-gamer.png";
 import plan500Bg from "@/assets/plan-500-family.png";
 import plan1gigaBg from "@/assets/plan-1giga-conference.png";
+import supportAgentBg from "@/assets/support-agent.png";
 import {
   User,
   Menu,
@@ -440,20 +441,51 @@ const Index = () => {
         ))}
       </div>
 
-      <div className="mt-6 bg-card rounded-xl p-4 shadow-soft border border-border">
-        <h3 className="font-semibold text-foreground mb-3">Fale Conosco</h3>
-        <div className="space-y-2">
-          <a href="tel:08001234567" className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-smooth">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <HeadphonesIcon className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">0800 123 4567</p>
-              <p className="text-xs text-muted-foreground">Atendimento 24h</p>
-            </div>
-          </a>
+      {/* Fale Conosco - Premium Image Card */}
+      <a
+        href="tel:08001234567"
+        className="group relative mt-6 block overflow-hidden rounded-3xl shadow-card transition-smooth hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]"
+        style={{ minHeight: "180px" }}
+      >
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <img
+            src={supportAgentBg}
+            alt="Atendente de suporte VN3"
+            className="h-full w-full object-cover transition-smooth group-hover:scale-105"
+          />
         </div>
-      </div>
+
+        {/* Gradient Overlay - Navy VN3 */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to right, hsla(215, 65%, 12%, 0.92) 0%, hsla(215, 65%, 18%, 0.75) 50%, hsla(215, 65%, 22%, 0.55) 100%)",
+          }}
+        />
+
+        {/* Content Layer */}
+        <div className="relative z-10 flex h-full min-h-[180px] items-center gap-5 p-6">
+          {/* Icon */}
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-md border border-white/20">
+            <HeadphonesIcon className="h-7 w-7 text-cyan-300" />
+          </div>
+
+          {/* Text Content */}
+          <div className="flex-1">
+            <p className="text-sm font-medium text-cyan-300 tracking-wide uppercase">
+              Fale Conosco
+            </p>
+            <p className="mt-1 text-3xl font-extrabold text-white tracking-tight">
+              0800 123 4567
+            </p>
+            <p className="mt-1 text-sm text-white/70">
+              Atendimento 24h • Ligação gratuita
+            </p>
+          </div>
+        </div>
+      </a>
     </div>
   );
 
