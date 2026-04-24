@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DrawerMenu } from "@/components/DrawerMenu";
 import logoVn3 from "@/assets/logo-vn3.png";
 import plan300Bg from "@/assets/plan-300-gamer.png";
 import plan500Bg from "@/assets/plan-500-family.png";
@@ -113,6 +114,7 @@ const statusConfig = {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("home");
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const renderHomeContent = () => (
     <>
@@ -501,7 +503,10 @@ const Index = () => {
         <div className="flex-1 flex justify-center items-center h-10 overflow-visible">
           <img src={logoVn3} alt="VN3 Internet" className="h-[4.5rem] w-auto object-contain" />
         </div>
-        <button className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-smooth">
+        <button 
+          onClick={() => setIsDrawerOpen(true)}
+          className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-smooth"
+        >
           <Menu className="w-5 h-5 text-foreground" />
         </button>
       </header>
@@ -538,6 +543,12 @@ const Index = () => {
           ))}
         </div>
       </nav>
+
+      {/* Drawer Menu */}
+      <DrawerMenu 
+        isOpen={isDrawerOpen} 
+        onClose={() => setIsDrawerOpen(false)} 
+      />
     </div>
   );
 };
