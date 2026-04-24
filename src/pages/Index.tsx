@@ -1,5 +1,8 @@
 import { useState } from "react";
 import logoVn3 from "@/assets/logo-vn3.png";
+import plan300Bg from "@/assets/plan-300-gamer.png";
+import plan500Bg from "@/assets/plan-500-family.png";
+import plan1gigaBg from "@/assets/plan-1giga-conference.png";
 import {
   User,
   Menu,
@@ -29,24 +32,30 @@ type TabKey = "home" | "plans" | "finance" | "support";
 const plans = [
   {
     name: "Plano Fibra 300 Mega",
+    speed: "300 Mega",
     price: "R$ 99,90",
     tag: "Sem Fidelidade",
     icon: Wifi,
     usage: 35,
+    bgImage: plan300Bg,
   },
   {
     name: "Plano Fibra 600 Mega",
+    speed: "600 Mega",
     price: "R$ 129,90",
-    tag: "Wi-Fi Plus",
+    tag: "Sem Fidelidade",
     icon: Zap,
     usage: 62,
+    bgImage: plan500Bg,
   },
   {
     name: "Plano Fibra 1 Giga",
+    speed: "1 Giga",
     price: "R$ 179,90",
-    tag: "Mais Popular",
+    tag: "Sem Fidelidade",
     icon: Zap,
     usage: 78,
+    bgImage: plan1gigaBg,
   },
 ];
 
@@ -167,38 +176,87 @@ const Index = () => {
             return (
               <article
                 key={plan.name}
-                className="flex w-64 shrink-0 flex-col rounded-3xl bg-card p-5 shadow-soft transition-smooth hover:-translate-y-1 hover:shadow-card border border-border"
+                className="group relative flex w-72 shrink-0 flex-col overflow-hidden rounded-3xl shadow-card transition-smooth hover:-translate-y-1 hover:shadow-lg"
+                style={{ minHeight: "360px" }}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
-                    <Icon className="h-5 w-5 text-primary" />
+                {/* Background Image */}
+                <div className="absolute inset-0">
+                  <img
+                    src={plan.bgImage}
+                    alt={plan.name}
+                    className="h-full w-full object-cover transition-smooth group-hover:scale-105"
+                  />
+                </div>
+
+                {/* Gradient Overlay - Navy VN3 */}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "linear-gradient(to bottom, hsla(215, 65%, 22%, 0.35) 0%, hsla(215, 65%, 22%, 0.55) 30%, hsla(215, 65%, 15%, 0.88) 70%, hsla(215, 70%, 12%, 0.95) 100%)",
+                  }}
+                />
+
+                {/* Content Layer */}
+                <div className="relative z-10 flex flex-1 flex-col justify-between p-5">
+                  {/* Top Section: Badge + Icon */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-md border border-white/20">
+                      <Icon className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="rounded-full bg-white/15 backdrop-blur-md px-3 py-1 text-xs font-semibold text-white border border-white/20">
+                      {plan.tag}
+                    </span>
                   </div>
-                  <span className="rounded-full bg-primary/5 px-3 py-1 text-xs font-semibold text-primary border border-primary/10">
-                    {plan.tag}
-                  </span>
-                </div>
 
-                <h3 className="mt-5 text-lg font-bold leading-tight text-foreground">
-                  {plan.name}
-                </h3>
+                  {/* Bottom Section: Info + Button */}
+                  <div className="mt-auto space-y-4">
+                    {/* Speed */}
+                    <div>
+                      <p className="text-sm font-medium text-cyan-300 tracking-wide uppercase">
+                        Velocidade
+                      </p>
+                      <h3 className="text-3xl font-extrabold text-white leading-tight tracking-tight">
+                        {plan.speed}
+                      </h3>
+                    </div>
 
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-primary">{plan.price}</span>
-                  <span className="text-sm text-muted-foreground">/mês</span>
-                </div>
+                    {/* Price */}
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-white">
+                        {plan.price}
+                      </span>
+                      <span className="text-sm text-white/70">/mês</span>
+                    </div>
 
-                {/* Consumption progress */}
-                <div className="mt-4">
-                  <div className="mb-1.5 flex items-center justify-between text-xs">
-                    <span className="font-medium text-muted-foreground">Consumo do mês</span>
-                    <span className="font-semibold text-primary">{plan.usage}%</span>
+                    {/* Consumption progress */}
+                    <div>
+                      <div className="mb-1.5 flex items-center justify-between text-xs">
+                        <span className="font-medium text-white/70">
+                          Consumo do mês
+                        </span>
+                        <span className="font-semibold text-cyan-300">
+                          {plan.usage}%
+                        </span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-white/15 backdrop-blur-sm">
+                        <div
+                          className="h-full rounded-full transition-all duration-700 ease-out"
+                          style={{
+                            width: `${plan.usage}%`,
+                            background:
+                              "linear-gradient(90deg, hsl(195, 85%, 55%), hsl(195, 80%, 65%))",
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* CTA Button */}
+                    <Button className="h-11 w-full rounded-2xl bg-accent font-semibold text-white hover:bg-accent/90 shadow-lg">
+                      Mudar para este plano
+                    </Button>
                   </div>
-                  <Progress value={plan.usage} className="h-2 bg-primary/10" />
                 </div>
-
-                <Button className="mt-5 h-11 w-full rounded-2xl bg-accent font-semibold text-white hover:bg-accent/90">
-                  Mudar para este plano
-                </Button>
               </article>
             );
           })}
