@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import logoVn3 from "@/assets/logo-vn3.png";
+import logoVn3Internet from "@/assets/logo-vn3-internet.png";
 import splashBg from "@/assets/splash-bg.png";
 
 interface SplashScreenProps {
@@ -63,7 +63,7 @@ const SplashScreen = ({ onFinish }: SplashScreenProps) => {
 
             {/* Logo com Scale Up */}
             <motion.img
-              src={logoVn3}
+              src={logoVn3Internet}
               alt="VN3 Internet"
               initial={{ opacity: 0, scale: 0.4 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -72,7 +72,7 @@ const SplashScreen = ({ onFinish }: SplashScreenProps) => {
                 delay: 0.2,
                 ease: [0.16, 1, 0.3, 1],
               }}
-              className="relative z-10 h-28 w-auto drop-shadow-2xl"
+              className="relative z-10 h-36 w-auto drop-shadow-2xl"
             />
 
             {/* Subtítulo */}
