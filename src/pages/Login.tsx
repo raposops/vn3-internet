@@ -11,6 +11,7 @@ import {
   KeyRound,
   ChevronRight,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────
@@ -57,21 +58,44 @@ const fieldVariants = {
 };
 
 /* ─────────────────────────────────────────
+   Usuários de teste (mock)
+───────────────────────────────────────── */
+const TEST_USERS: Record<string, string> = {
+  "05306506739": "10120404",
+};
+
+/* ─────────────────────────────────────────
    Componente Principal
 ───────────────────────────────────────── */
 const Login = () => {
   const navigate = useNavigate();
-  const [cpfCnpj, setCpfCnpj]         = useState("");
-  const [senha, setSenha]             = useState("");
+  const [cpfCnpj, setCpfCnpj]           = useState("");
+  const [senha, setSenha]               = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading]     = useState(false);
-  const [isFocusCpf, setIsFocusCpf]   = useState(false);
+  const [isLoading, setIsLoading]       = useState(false);
+  const [isFocusCpf, setIsFocusCpf]     = useState(false);
   const [isFocusSenha, setIsFocusSenha] = useState(false);
+  const [errorMsg, setErrorMsg]         = useState("");
+  const [shakeKey, setShakeKey]         = useState(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1400));
+    setErrorMsg("");
+
+    await new Promise((r) => setTimeout(r, 1000));
+
+    // Valida credenciais contra lista de usuários de teste
+    const cpfDigits = cpfCnpj.replace(/\D/g, "");
+    const senhaCorreta = TEST_USERS[cpfDigits];
+
+    if (!senhaCorreta || senhaCorreta !== senha) {
+      setIsLoading(false);
+      setErrorMsg("CPF/CNPJ ou senha incorretos. Tente novamente.");
+      setShakeKey((k) => k + 1); // dispara animação de shake
+      return;
+    }
+
     setIsLoading(false);
     navigate("/");
   };
@@ -267,6 +291,26 @@ const Login = () => {
                   Esqueci minha senha
                 </button>
               </motion.div>
+
+              {/* ── Mensagem de erro ── */}
+              <AnimatePresence>
+                {errorMsg && (
+                  <motion.div
+                    key={shakeKey}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{
+                      opacity: 1,
+                      x: [0, -8, 8, -6, 6, -3, 3, 0],
+                      transition: { duration: 0.45, ease: "easeOut" },
+                    }}
+                    exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                    className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5"
+                  >
+                    <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+                    <span className="text-sm font-medium text-red-600">{errorMsg}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* ── Botão Entrar ── */}
               <motion.div
