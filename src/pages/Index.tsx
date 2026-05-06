@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DrawerMenu } from "@/components/DrawerMenu";
 import { ConsumptionCard } from "@/components/ConsumptionCard";
 import logoVn3 from "@/assets/logo-vn3.png";
@@ -114,8 +115,14 @@ const statusConfig = {
 };
 
 const Index = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>("home");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const handleLogout = () => {
+    setIsDrawerOpen(false);
+    navigate("/login");
+  };
 
   const renderHomeContent = () => (
     <>
@@ -550,7 +557,8 @@ const Index = () => {
       {/* Drawer Menu */}
       <DrawerMenu 
         isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)} 
+        onClose={() => setIsDrawerOpen(false)}
+        onLogout={handleLogout}
       />
     </div>
   );

@@ -1,12 +1,22 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { User, LogOut, Settings, Shield, FileText, UserCircle, X } from "lucide-react";
+import { useState } from "react";
 
 interface DrawerMenuProps {
   isOpen: boolean;
   onClose: () => void;
+  onLogout: () => void;
 }
 
-export function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
+export function DrawerMenu({ isOpen, onClose, onLogout }: DrawerMenuProps) {
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    // Pequeno delay para feedback visual antes de sair
+    await new Promise((r) => setTimeout(r, 700));
+    onLogout();
+  };
   return (
     <AnimatePresence>
       {isOpen && (
@@ -67,9 +77,26 @@ export function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
 
             {/* Logout Button */}
             <div className="p-5 border-t border-border mt-auto">
-              <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-destructive/20 text-destructive hover:bg-destructive/10 transition-smooth font-bold text-sm shadow-sm">
-                <LogOut className="w-4 h-4" />
-                Sair
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border border-destructive/30 text-destructive hover:bg-destructive/10 active:scale-[0.97] transition-all duration-200 font-bold text-sm shadow-sm disabled:opacity-70"
+              >
+                {loggingOut ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }}
+                      className="w-4 h-4 border-2 border-destructive/30 border-t-destructive rounded-full"
+                    />
+                    Saindo...
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="w-4 h-4" />
+                    Sair da conta
+                  </>
+                )}
               </button>
             </div>
           </motion.div>
