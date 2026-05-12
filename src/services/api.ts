@@ -47,8 +47,14 @@ api.interceptors.response.use(
       switch (status) {
         case 401:
           console.error("[API] Não autorizado — token inválido ou expirado.");
+          // Aviso claro ao usuário conforme solicitado
+          alert("Sua sessão expirou ou o token de acesso é inválido. Por favor, faça login novamente.");
           sessionStorage.removeItem("ixc_cliente_token");
           sessionStorage.removeItem("ixc_cliente_data");
+          // Redireciona para login se não estiver lá
+          if (window.location.pathname !== "/login") {
+            window.location.href = "/login";
+          }
           break;
         case 403:
           console.error("[API] Acesso proibido.");

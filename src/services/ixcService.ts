@@ -148,7 +148,7 @@ function buildFilterBody(
   const query = filters.length > 0 ? filters[0].value : "";
   const oper  = filters.length > 0 ? filters[0].type : "=";
 
-  return {
+  const body: any = {
     qtype,
     query,
     oper,
@@ -156,14 +156,20 @@ function buildFilterBody(
     rp: String(perPage),
     sortname: sortField || "id",
     sortorder: sortOrder,
-    grid_param: JSON.stringify(
+  };
+
+  // Se houver mais de um filtro, ou se for necessário grid_param, adicionamos
+  if (filters.length > 1) {
+    body.grid_param = JSON.stringify(
       filters.map((f) => ({
         TB: f.field,
         OP: f.type,
         P: f.value,
       }))
-    ),
-  };
+    );
+  }
+
+  return body;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -182,10 +188,11 @@ const ixcService = {
     const cpfLimpo = payload.cnpj_cpf.replace(/\D/g, "");
 
     try {
+      // Conforme documentação: POST /cliente com qtype, query e oper
       const response = await api.post<IxcListResponse<IxcCliente>>("/cliente", {
-        ...buildFilterBody([
-          { field: "cnpj_cpf", type: "=", value: cpfLimpo },
-        ]),
+        qtype: "cnpj_cpf",
+        query: cpfLimpo,
+        oper: "=",
       });
 
       if (response.data.total > 0) {
@@ -290,10 +297,10 @@ const ixcService = {
     const response = await api.post<IxcListResponse<IxcFatura>>(
       "/fn_areceber",
       {
-        ...buildFilterBody([
-          { field: "id_cliente", type: "=", value: idCliente },
-          { field: "status", type: "=", value: "A" },
-        ]),
+        qtype: "id_cliente",
+        query: idCliente,
+        oper: "=",
+        status: "A", // Filtro adicional conforme documentação
       }
     );
     return response.data.registros || [];

@@ -132,6 +132,18 @@ const Index = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>("home");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
+
+  const handleCopyPix = (code?: string) => {
+    if (!code) {
+      alert("Código Pix não disponível para esta fatura.");
+      return;
+    }
+    navigator.clipboard.writeText(code);
+    setCopyStatus("Código copiado!");
+    setTimeout(() => setCopyStatus(null), 3000);
+    alert("Código Pix copiado para a área de transferência!");
+  };
 
   // ─── Escuta ações de notificações push para navegar ────
   useNotificationNavigation(setActiveTab as (tab: string) => void);
@@ -287,8 +299,11 @@ const Index = () => {
             </p>
           </div>
 
-          <Button className="relative mt-6 h-12 w-full rounded-2xl bg-accent text-base font-semibold text-white shadow-lg hover:bg-accent/90">
-            Pagar com Pix (Copia e Cola)
+          <Button 
+            onClick={() => handleCopyPix(faturaDestaque?.linha_digitavel)}
+            className="relative mt-6 h-12 w-full rounded-2xl bg-accent text-base font-semibold text-white shadow-lg hover:bg-accent/90"
+          >
+            {copyStatus || "Pagar com Pix (Copia e Cola)"}
           </Button>
 
           <button
@@ -490,6 +505,7 @@ const Index = () => {
       status: mapFaturaStatus(f),
       dueDate: formatIxcDate(f.data_vencimento),
       paidAt: f.data_pagamento ? formatIxcDate(f.data_pagamento) : undefined,
+      linha_digitavel: f.linha_digitavel,
     }));
 
     return (
@@ -570,6 +586,7 @@ const Index = () => {
               {!isPaid && (
                 <div className="flex gap-3">
                   <Button
+                    onClick={() => handleCopyPix(invoice.linha_digitavel)}
                     className="flex-1 h-11 rounded-xl bg-accent font-semibold text-white hover:bg-accent/90 gap-2"
                   >
                     <Copy className="w-4 h-4" />
