@@ -142,7 +142,30 @@ const pushNotificationService = {
       });
 
       if (token) {
-        console.log("[Push] Device Token obtido:", token.substring(0, 20) + "...");
+        /*
+         * ══════════════════════════════════════════════════════════
+         * 📱 FCM TOKEN — O "endereço" do celular/browser do cliente
+         *
+         * Este token é o identificador único do dispositivo. Funciona
+         * como um "endereço de entrega" — é para ele que o Firebase
+         * enviará as notificações push. Cada dispositivo/browser
+         * gera um token diferente.
+         *
+         * Para enviar uma notificação a um cliente específico, o
+         * backend precisa saber o token do dispositivo dele.
+         * Por isso, este token deve ser salvo no cadastro do
+         * cliente (IXC Soft ou Supabase) após o login.
+         * ══════════════════════════════════════════════════════════
+         */
+        console.log(
+          "%c[Push] 📱 FCM Token capturado com sucesso!",
+          "color: #22D1EE; font-weight: bold; font-size: 13px;"
+        );
+        console.log(
+          "%c[Push] Este é o 'endereço' único deste dispositivo para receber notificações push:",
+          "color: #8899aa;"
+        );
+        console.log("[Push] Token:", token);
 
         // Armazena localmente para referência
         localStorage.setItem("vn3_push_token", token);
