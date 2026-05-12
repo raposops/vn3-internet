@@ -11,6 +11,14 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      "/ixc-api": {
+        target: "https://4419.ixcsoft.com",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ixc-api/, "/webservice/v1"),
+      },
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

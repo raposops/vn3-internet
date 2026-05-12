@@ -185,13 +185,15 @@ const ixcService = {
    * (ou via endpoint de autenticação do IXC, se disponível).
    */
   async login(payload: IxcLoginPayload): Promise<IxcCliente | null> {
-    const cpfLimpo = payload.cnpj_cpf.replace(/\D/g, "");
+    // O IXC armazena CPF/CNPJ com formatação (pontos/traços/barra)
+    // Enviamos exatamente como o usuário digitou (já formatado pelo input)
+    const cpfFormatado = payload.cnpj_cpf.trim();
 
     try {
       // Conforme documentação: POST /cliente com qtype, query e oper
       const response = await api.post<IxcListResponse<IxcCliente>>("/cliente", {
         qtype: "cnpj_cpf",
-        query: cpfLimpo,
+        query: cpfFormatado,
         oper: "=",
       });
 
@@ -231,9 +233,9 @@ const ixcService = {
 
   /** Busca cliente por CPF/CNPJ */
   async getClienteByCpf(cpf: string): Promise<IxcCliente | null> {
-    const cpfLimpo = cpf.replace(/\D/g, "");
+    // Envia CPF/CNPJ com formatação (como armazenado no IXC)
     const response = await api.post<IxcListResponse<IxcCliente>>("/cliente", {
-      ...buildFilterBody([{ field: "cnpj_cpf", type: "=", value: cpfLimpo }]),
+      ...buildFilterBody([{ field: "cnpj_cpf", type: "=", value: cpf.trim() }]),
     });
 
     return response.data.total > 0 ? response.data.registros[0] : null;

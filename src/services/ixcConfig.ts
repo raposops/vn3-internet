@@ -12,14 +12,18 @@ const IXC_API_TOKEN =
   import.meta.env.VITE_IXC_API_TOKEN || "";
 
 // ─── Endpoint base da API REST ────────────────────────────────
-export const IXC_API_URL = `${IXC_BASE_URL}/webservice/v1`;
+// Em dev, usa o proxy do Vite para contornar CORS.
+// Em produção, aponta direto para o servidor IXC.
+const isDev = import.meta.env.DEV;
+export const IXC_API_URL = isDev
+  ? "/ixc-api"
+  : `${IXC_BASE_URL}/webservice/v1`;
 
 // ─── Headers de autenticação ──────────────────────────────────
-//  A API IXC usa Basic Auth no formato:  token:{API_TOKEN}
-//  codificado em Base64.
+//  A API IXC usa Basic Auth com o token codificado em Base64.
 export const IXC_AUTH_HEADERS = {
   "Content-Type": "application/json",
-  "Authorization": `Basic ${btoa(`token:${IXC_API_TOKEN}`)}`,
+  "Authorization": `Basic ${btoa(IXC_API_TOKEN)}`,
   "ixcsoft": "listar",
 } as const;
 
