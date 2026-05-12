@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import logoVn3Internet from "@/assets/logo-vn3-internet.png";
 import ixcService from "@/services/ixcService";
 import localCache from "@/services/localCache";
+import pushNotificationService from "@/services/pushNotificationService";
 import {
   Eye,
   EyeOff,
@@ -96,6 +97,19 @@ const Login = () => {
 
       setIsLoading(false);
       navigate("/");
+
+      // ── Push Notifications — solicita permissão na primeira vez ──
+      // Executa após navegar para não bloquear o fluxo de login.
+      // O token capturado deve ser enviado ao backend (IXC/Supabase)
+      // vinculado ao id do cliente para permitir pushes segmentados.
+      setTimeout(() => {
+        pushNotificationService.initializeAfterLogin().then((token) => {
+          if (token) {
+            console.log("[Login] Push token capturado para cliente", cliente.id);
+            // TODO: Enviar token para o backend vinculado ao cliente.id
+          }
+        });
+      }, 1500);
     } catch (error: any) {
       setIsLoading(false);
 

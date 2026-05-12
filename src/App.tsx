@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,6 +9,9 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Login from "./pages/Login.tsx";
 import SplashScreen from "./pages/SplashScreen.tsx";
+import PushNotificationBanner from "./components/PushNotificationBanner.tsx";
+import pushNotificationService from "./services/pushNotificationService.ts";
+import { dispatchNotificationNav } from "./hooks/useNotificationNavigation.ts";
 
 const queryClient = new QueryClient();
 
@@ -32,11 +35,27 @@ const App = () => {
   // "splash" | "app"
   const [phase, setPhase] = useState<"splash" | "app">("splash");
 
+  // ─── Inicializa listener de foreground push (uma vez) ─────
+  useEffect(() => {
+    if (pushNotificationService.isSupported() && pushNotificationService.hasPermission()) {
+      pushNotificationService.startForegroundListener();
+    }
+  }, []);
+
+  // ─── Callback para ação ao clicar em notificação ──────────
+  // Despacha um evento global que o Index.tsx escuta via hook
+  const handleNotificationAction = useCallback((action: string) => {
+    dispatchNotificationNav(action);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
+
+        {/* Banner de notificações push (foreground) */}
+        <PushNotificationBanner onActionClick={handleNotificationAction} />
 
         {/* Splash overlay — cobre tudo enquanto phase === "splash" */}
         <AnimatePresence>

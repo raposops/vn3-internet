@@ -37,6 +37,8 @@ import ixcService from "@/services/ixcService";
 import type { IxcCliente, IxcFatura, IxcContrato, IxcPlano } from "@/services/ixcService";
 import type { DailyConsumption } from "@/services/ixcService";
 import localCache from "@/services/localCache";
+import pushNotificationService from "@/services/pushNotificationService";
+import { useNotificationNavigation } from "@/hooks/useNotificationNavigation";
 
 type TabKey = "home" | "plans" | "finance" | "support";
 
@@ -130,6 +132,9 @@ const Index = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>("home");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // ─── Escuta ações de notificações push para navegar ────
+  useNotificationNavigation(setActiveTab as (tab: string) => void);
 
   // ─── Dados da API IXC ─────────────────────────
   const [cliente, setCliente] = useState<IxcCliente | null>(null);
@@ -230,6 +235,7 @@ const Index = () => {
   const handleLogout = () => {
     ixcService.logout();
     localCache.clear(); // Limpa cache local no logout
+    pushNotificationService.clearOnLogout(); // Limpa dados de push
     setIsDrawerOpen(false);
     navigate("/login");
   };
