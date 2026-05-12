@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DrawerMenu } from "@/components/DrawerMenu";
 import { ConsumptionCard } from "@/components/ConsumptionCard";
@@ -27,9 +27,16 @@ import {
   Copy,
   FileDown,
   AlertCircle,
+  Loader2,
+  WifiOff,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import ixcService from "@/services/ixcService";
+import type { IxcCliente, IxcFatura, IxcContrato, IxcPlano } from "@/services/ixcService";
+import type { DailyConsumption } from "@/services/ixcService";
+import localCache from "@/services/localCache";
 
 type TabKey = "home" | "plans" | "finance" | "support";
 
@@ -63,29 +70,34 @@ const plans = [
   },
 ];
 
-const invoices = [
-  {
-    id: 1,
-    month: "Abril/2026",
-    amount: "R$ 99,90",
-    status: "aberto" as const,
-    dueDate: "10/04/2026",
-  },
-  {
-    id: 2,
-    month: "Março/2026",
-    amount: "R$ 99,90",
-    status: "a_vencer" as const,
-    dueDate: "10/03/2026",
-  },
-  {
-    id: 3,
-    month: "Fevereiro/2026",
-    amount: "R$ 99,90",
-    status: "pago" as const,
-    paidAt: "08/02/2026",
-  },
-];
+/* ─── Helpers para transformar dados IXC → UI ───────────── */
+const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+function mapFaturaStatus(f: IxcFatura): "pago" | "a_vencer" | "aberto" {
+  if (f.status === "P" || f.data_pagamento) return "pago";
+  const venc = new Date(f.data_vencimento);
+  return venc < new Date() ? "aberto" : "a_vencer";
+}
+
+function formatIxcDate(d: string): string {
+  if (!d) return "";
+  const [y, m, day] = d.split("-");
+  return `${day}/${m}/${y}`;
+}
+
+function formatFaturaMes(d: string): string {
+  const date = new Date(d);
+  return `${MESES[date.getMonth()]}/${date.getFullYear()}`;
+}
+
+function formatValor(v: string): string {
+  const num = parseFloat(v || "0");
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(num);
+}
 
 const statusConfig = {
   pago: {
@@ -119,9 +131,111 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("home");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // ─── Dados da API IXC ─────────────────────────
+  const [cliente, setCliente] = useState<IxcCliente | null>(null);
+  const [contrato, setContrato] = useState<IxcContrato | null>(null);
+  const [plano, setPlano] = useState<IxcPlano | null>(null);
+  const [faturas, setFaturas] = useState<{
+    emAberto: IxcFatura[];
+    vencidas: IxcFatura[];
+    historico: IxcFatura[];
+    totalEmAberto: number;
+  } | null>(null);
+  const [consumo, setConsumo] = useState<DailyConsumption[] | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // ─── Carrega dados: cache primeiro, API em background ─────
+  useEffect(() => {
+    // 1️⃣ Carrega cache instantaneamente (sem spinner)
+    const cached = localCache.getAll();
+    const hasCache = localCache.hasCache();
+
+    if (hasCache) {
+      setCliente(cached.cliente);
+      setContrato(cached.contrato);
+      setPlano(cached.plano);
+      setFaturas(cached.faturas);
+      setConsumo(cached.consumo ?? undefined);
+      setIsLoading(false); // UI aparece instantaneamente
+    }
+
+    // 2️⃣ Atualiza da API em background
+    async function refreshFromApi() {
+      if (hasCache) {
+        setIsRefreshing(true); // indicador sutil, não bloqueia UI
+      } else {
+        setIsLoading(true); // primeira vez: mostra skeleton
+      }
+      setApiError(null);
+
+      try {
+        // Tenta sessão ou cache para obter CPF
+        const clienteLogado = ixcService.getClienteLogado() || cached.cliente;
+        if (!clienteLogado) {
+          if (!hasCache) {
+            setApiError("Sessão expirada. Faça login novamente.");
+          }
+          setIsLoading(false);
+          setIsRefreshing(false);
+          return;
+        }
+
+        // Perfil completo
+        const perfil = await ixcService.getProfile(clienteLogado.cnpj_cpf);
+        if (perfil) {
+          setCliente(perfil.cliente);
+          setContrato(perfil.contrato);
+          setPlano(perfil.plano);
+
+          // Faturas
+          const faturasData = await ixcService.getInvoices(perfil.cliente.id);
+          setFaturas(faturasData);
+
+          // Consumo semanal
+          let consumoData: DailyConsumption[] | undefined;
+          if (perfil.cliente) {
+            consumoData = await ixcService.getExtratoConexao(perfil.cliente.id);
+            setConsumo(consumoData);
+          }
+
+          // 3️⃣ Persiste tudo no cache local
+          localCache.saveAll({
+            cliente: perfil.cliente,
+            contrato: perfil.contrato,
+            plano: perfil.plano,
+            faturas: faturasData,
+            consumo: consumoData ?? null,
+          });
+        }
+      } catch (err) {
+        console.error("[Home] Erro ao atualizar dados:", err);
+        // Só mostra erro se não tem cache
+        if (!hasCache) {
+          setApiError("Não foi possível carregar seus dados. Tente novamente.");
+        }
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    }
+
+    refreshFromApi();
+  }, []);
+
+  // Fatura em destaque (vencida ou próxima em aberto)
+  const faturaDestaque = faturas?.vencidas[0] || faturas?.emAberto[0] || null;
+
   const handleLogout = () => {
+    ixcService.logout();
+    localCache.clear(); // Limpa cache local no logout
     setIsDrawerOpen(false);
     navigate("/login");
+  };
+
+  const handleRetry = () => {
+    window.location.reload();
   };
 
   const renderHomeContent = () => (
@@ -138,7 +252,9 @@ const Index = () => {
           </span>
         </div>
         <p className="mt-3 text-sm text-muted-foreground">Bem-vindo de volta</p>
-        <h1 className="text-3xl font-bold text-foreground">Olá, Paulo</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          Olá, {cliente?.razao?.split(" ")[0] || "Cliente"}
+        </h1>
       </section>
 
       {/* Invoice Card */}
@@ -155,8 +271,14 @@ const Index = () => {
           </div>
 
           <div className="relative mt-6">
-            <p className="text-5xl font-bold tracking-tight">R$ 99,90</p>
-            <p className="mt-2 text-sm opacity-80">Vence em 10/11/2023</p>
+            <p className="text-5xl font-bold tracking-tight">
+              {faturaDestaque ? formatValor(faturaDestaque.valor) : "—"}
+            </p>
+            <p className="mt-2 text-sm opacity-80">
+              {faturaDestaque
+                ? `Vence em ${formatIxcDate(faturaDestaque.data_vencimento)}`
+                : "Nenhuma fatura em aberto 🎉"}
+            </p>
           </div>
 
           <Button className="relative mt-6 h-12 w-full rounded-2xl bg-accent text-base font-semibold text-white shadow-lg hover:bg-accent/90">
@@ -283,52 +405,111 @@ const Index = () => {
         <p className="text-muted-foreground text-sm mt-1">Gerencie seus planos ativos</p>
       </div>
 
-      <div className="bg-card rounded-2xl p-5 shadow-soft border border-border">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Wifi className="w-6 h-6 text-primary" />
+      {plano ? (
+        <div className="bg-card rounded-2xl p-5 shadow-soft border border-border">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Wifi className="w-6 h-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-foreground">{plano.nome}</h3>
+              <p className="text-sm text-muted-foreground">Plano atual</p>
+            </div>
+            {contrato && (
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold border ${
+                  contrato.status === "A"
+                    ? "bg-success/10 text-success border-success/20"
+                    : "bg-destructive/10 text-destructive border-destructive/20"
+                }`}
+              >
+                {contrato.status === "A" ? "Ativo" : "Inativo"}
+              </span>
+            )}
           </div>
-          <div>
-            <h3 className="font-semibold text-foreground">Fibra 300 Mega</h3>
-            <p className="text-sm text-muted-foreground">Plano atual</p>
+
+          <div className="space-y-3 mb-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Download</span>
+              <span className="font-medium text-foreground">{plano.download} Mbps</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Upload</span>
+              <span className="font-medium text-foreground">{plano.upload} Mbps</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Valor</span>
+              <span className="font-medium text-foreground">{formatValor(plano.valor)}/mês</span>
+            </div>
+            {contrato?.data_inicio && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Contrato desde</span>
+                <span className="font-medium text-foreground">{formatIxcDate(contrato.data_inicio)}</span>
+              </div>
+            )}
           </div>
+
+          {plano.descricao && (
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+              {plano.descricao}
+            </p>
+          )}
+
+          <Button className="w-full bg-accent text-white hover:bg-accent/90 font-semibold">
+            Acessar
+          </Button>
         </div>
-
-        <div className="space-y-3 mb-4">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Download</span>
-            <span className="font-medium text-foreground">300 Mbps</span>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-12 text-center bg-card rounded-2xl shadow-soft border border-border">
+          <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4">
+            <WifiOff className="w-7 h-7 text-muted-foreground" />
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Upload</span>
-            <span className="font-medium text-foreground">150 Mbps</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Wi-Fi Plus</span>
-            <span className="font-medium text-success">Incluído</span>
-          </div>
+          <p className="font-semibold text-foreground">Nenhum plano encontrado</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Não foi possível carregar os dados do seu plano.
+          </p>
         </div>
+      )}
 
-        <Button className="w-full bg-accent text-white hover:bg-accent/90 font-semibold">
-          Acessar
-        </Button>
-      </div>
-
-      <ConsumptionCard />
+      <ConsumptionCard data={consumo} />
     </div>
   );
 
-  const renderFinanceContent = () => (
+  const renderFinanceContent = () => {
+    // Transforma faturas IXC no formato da UI
+    const invoiceList = (faturas?.historico || []).map((f) => ({
+      id: f.id,
+      month: formatFaturaMes(f.data_vencimento),
+      amount: formatValor(f.valor),
+      status: mapFaturaStatus(f),
+      dueDate: formatIxcDate(f.data_vencimento),
+      paidAt: f.data_pagamento ? formatIxcDate(f.data_pagamento) : undefined,
+    }));
+
+    return (
     <div className="space-y-5">
       {/* Section title */}
       <div>
         <h1 className="text-xl font-bold text-foreground">Suas Faturas</h1>
-        <p className="text-muted-foreground text-sm mt-1">Histórico de faturas e pagamentos</p>
+        <p className="text-muted-foreground text-sm mt-1">
+          {faturas
+            ? `${faturas.emAberto.length} em aberto · Total: ${formatValor(String(faturas.totalEmAberto))}`
+            : "Histórico de faturas e pagamentos"}
+        </p>
       </div>
 
       {/* Invoice Cards */}
+      {invoiceList.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="w-14 h-14 rounded-full bg-success/10 flex items-center justify-center mb-4">
+            <CheckCircle2 className="w-7 h-7 text-success" />
+          </div>
+          <p className="font-semibold text-foreground">Tudo em dia!</p>
+          <p className="text-sm text-muted-foreground mt-1">Nenhuma fatura encontrada.</p>
+        </div>
+      ) : (
       <div className="space-y-4">
-        {invoices.map((invoice, index) => {
+        {invoiceList.map((invoice, index) => {
           const config = statusConfig[invoice.status];
           const StatusIcon = config.icon;
           const isPaid = invoice.status === "pago";
@@ -400,6 +581,7 @@ const Index = () => {
           );
         })}
       </div>
+      )}
 
       {/* Trust Unlock CTA */}
       <div className="pt-2 pb-4">
@@ -426,6 +608,7 @@ const Index = () => {
       </div>
     </div>
   );
+  };
 
   const renderSupportContent = () => (
     <div className="space-y-4">
@@ -521,12 +704,66 @@ const Index = () => {
         </button>
       </header>
 
+      {/* Indicador sutil de atualização em background */}
+      {isRefreshing && (
+        <div className="sticky top-[72px] z-10 h-1 w-full overflow-hidden bg-primary/10">
+          <div
+            className="h-full w-1/3 rounded-full bg-primary/60 animate-[slideRight_1.2s_ease-in-out_infinite]"
+          />
+          <style>{`
+            @keyframes slideRight {
+              0%   { transform: translateX(-100%); }
+              100% { transform: translateX(400%); }
+            }
+          `}</style>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="px-4 py-6">
-        {activeTab === "home" && renderHomeContent()}
-        {activeTab === "plans" && renderPlansContent()}
-        {activeTab === "finance" && renderFinanceContent()}
-        {activeTab === "support" && renderSupportContent()}
+        {isLoading ? (
+          /* ── Loading Skeleton ── */
+          <div className="space-y-6">
+            <div className="space-y-3 px-1">
+              <div className="h-8 w-24 rounded-full bg-muted animate-pulse" />
+              <div className="h-5 w-40 rounded-lg bg-muted animate-pulse" />
+              <div className="h-10 w-56 rounded-lg bg-muted animate-pulse" />
+            </div>
+            <div className="h-52 rounded-3xl bg-muted animate-pulse" />
+            <div className="space-y-3">
+              <div className="h-5 w-36 rounded-lg bg-muted animate-pulse" />
+              <div className="h-44 rounded-2xl bg-muted animate-pulse" />
+              <div className="h-44 rounded-2xl bg-muted animate-pulse" />
+            </div>
+            <div className="flex items-center justify-center pt-4 gap-2 text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm font-medium">Carregando seus dados...</span>
+            </div>
+          </div>
+        ) : apiError ? (
+          /* ── Error State ── */
+          <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-5">
+              <WifiOff className="w-8 h-8 text-destructive" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground">Ops! Algo deu errado</h2>
+            <p className="text-sm text-muted-foreground mt-2 max-w-xs">{apiError}</p>
+            <Button
+              onClick={handleRetry}
+              className="mt-6 gap-2 rounded-xl bg-primary text-white hover:bg-primary/90"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Tentar novamente
+            </Button>
+          </div>
+        ) : (
+          <>
+            {activeTab === "home" && renderHomeContent()}
+            {activeTab === "plans" && renderPlansContent()}
+            {activeTab === "finance" && renderFinanceContent()}
+            {activeTab === "support" && renderSupportContent()}
+          </>
+        )}
       </main>
 
       {/* Bottom Navigation */}

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import logoVn3Internet from "@/assets/logo-vn3-internet.png";
+import ixcService from "@/services/ixcService";
+import localCache from "@/services/localCache";
 import {
   Eye,
   EyeOff,
@@ -58,13 +60,6 @@ const fieldVariants = {
 };
 
 /* ─────────────────────────────────────────
-   Usuários de teste (mock)
-───────────────────────────────────────── */
-const TEST_USERS: Record<string, string> = {
-  "05306506739": "10120404",
-};
-
-/* ─────────────────────────────────────────
    Componente Principal
 ───────────────────────────────────────── */
 const Login = () => {
@@ -83,21 +78,42 @@ const Login = () => {
     setIsLoading(true);
     setErrorMsg("");
 
-    await new Promise((r) => setTimeout(r, 1000));
+    try {
+      const cliente = await ixcService.login({
+        cnpj_cpf: cpfCnpj,
+        senha,
+      });
 
-    // Valida credenciais contra lista de usuários de teste
-    const cpfDigits = cpfCnpj.replace(/\D/g, "");
-    const senhaCorreta = TEST_USERS[cpfDigits];
+      if (!cliente) {
+        setIsLoading(false);
+        setErrorMsg("CPF/CNPJ ou senha incorretos. Tente novamente.");
+        setShakeKey((k) => k + 1);
+        return;
+      }
 
-    if (!senhaCorreta || senhaCorreta !== senha) {
+      // Login bem-sucedido — persiste no cache local para abertura rápida
+      localCache.saveCliente(cliente);
+
       setIsLoading(false);
-      setErrorMsg("CPF/CNPJ ou senha incorretos. Tente novamente.");
-      setShakeKey((k) => k + 1); // dispara animação de shake
-      return;
-    }
+      navigate("/");
+    } catch (error: any) {
+      setIsLoading(false);
 
-    setIsLoading(false);
-    navigate("/");
+      let mensagem = "Não foi possível conectar. Verifique sua internet e tente novamente.";
+
+      if (error.response) {
+        if (error.response.status === 401 || error.response.status === 403) {
+          mensagem = "Falha de autorização (Token inválido ou expirado). Contate o suporte.";
+        } else {
+          mensagem = `O sistema está temporariamente indisponível (Erro ${error.response.status}).`;
+        }
+      } else if (error.request) {
+        mensagem = "O servidor demorou muito para responder. Tente novamente mais tarde.";
+      }
+
+      setErrorMsg(mensagem);
+      setShakeKey((k) => k + 1);
+    }
   };
 
   const canSubmit = cpfCnpj.length >= 11 && senha.length >= 4;
