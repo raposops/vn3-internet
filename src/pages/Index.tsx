@@ -77,7 +77,8 @@ const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
 function mapFaturaStatus(f: IxcFatura): "pago" | "a_vencer" | "aberto" {
-  if (f.status === "P" || f.data_pagamento) return "pago";
+  // IXC usa: R = Recebido (Pago), A = Aberto, C = Cancelado
+  if (f.status === "R" || f.status === "P" || f.data_pagamento) return "pago";
   const venc = new Date(f.data_vencimento);
   return venc < new Date() ? "aberto" : "a_vencer";
 }
@@ -133,6 +134,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("home");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
 
   const handleCopyPix = (code?: string) => {
     if (!code) {
@@ -143,6 +145,23 @@ const Index = () => {
     setCopyStatus("Código copiado!");
     setTimeout(() => setCopyStatus(null), 3000);
     alert("Código Pix copiado para a área de transferência!");
+  };
+
+  const handleDownloadBoleto = async (invoiceId: string) => {
+    try {
+      setDownloadingInvoiceId(invoiceId);
+      const link = await ixcService.getLinkBoleto(invoiceId);
+      if (link) {
+        window.open(link, "_blank");
+      } else {
+        alert("Boleto indisponível no momento.");
+      }
+    } catch (err) {
+      alert("Erro ao buscar o link do boleto. Tente novamente mais tarde.");
+      console.error("[Index] Erro getLinkBoleto:", err);
+    } finally {
+      setDownloadingInvoiceId(null);
+    }
   };
 
   // ─── Escuta ações de notificações push para navegar ────
@@ -593,10 +612,17 @@ const Index = () => {
                     Pix Copia e Cola
                   </Button>
                   <Button
+                    onClick={() => handleDownloadBoleto(invoice.id)}
+                    disabled={downloadingInvoiceId === invoice.id}
                     variant="outline"
                     className="h-11 w-11 rounded-xl border-border p-0 hover:bg-primary/5"
+                    title="Baixar Boleto"
                   >
-                    <FileDown className="w-5 h-5 text-primary" />
+                    {downloadingInvoiceId === invoice.id ? (
+                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <FileDown className="w-5 h-5 text-primary" />
+                    )}
                   </Button>
                 </div>
               )}

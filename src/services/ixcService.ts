@@ -44,6 +44,7 @@ export interface IxcContrato {
   data_inicio: string;
   data_fim: string;
   tipo_documento: string;
+  id_vd_contrato: string;
   obs: string;
 }
 
@@ -267,11 +268,78 @@ const ixcService = {
 
   /** Busca informações de um plano de internet */
   async getPlano(idPlano: string): Promise<IxcPlano> {
-    const response = await api.get<IxcPlano>(`/vd_servicos/${idPlano}`);
-    return response.data;
+    try {
+      // 1. Tenta o endpoint padrão (vd_servicos)
+      const response = await api.post<any>("/vd_servicos", {
+        qtype: "id",
+        query: idPlano,
+        oper: "=",
+      });
+      
+      if (response.data.total > 0 && response.data.type !== "error") {
+        return response.data.registros[0];
+      }
+    } catch (err) {
+      console.warn("[IXC] Falha ao consultar vd_servicos, tentando fallback...");
+    }
+
+    try {
+      // 2. Fallback para vd_contratos (comum em algumas versões do IXC)
+      const resp2 = await api.post<any>("/vd_contratos", {
+        qtype: "id",
+        query: idPlano,
+        oper: "=",
+      });
+      
+      if (resp2.data.total > 0 && resp2.data.type !== "error") {
+        const registro = resp2.data.registros[0];
+        // Mapeia campos do vd_contratos para o formato IxcPlano esperado pela UI
+        return {
+          ...registro,
+          valor: registro.valor_contrato || registro.valor || "0",
+          download: registro.download || "—",
+          upload: registro.upload || "—",
+        };
+      }
+    } catch (err) {
+      console.error("[IXC] Erro crítico ao buscar plano:", err);
+    }
+
+    throw new Error("Plano não encontrado nos registros do provedor.");
   },
 
-  // ─── Financeiro / Faturas ─────────────────────────────────
+  /** Busca informações de um grupo de velocidade (Radius) */
+  async getGrupo(idGrupo: string): Promise<{ download: string; upload: string } | null> {
+    try {
+      const response = await api.post<IxcListResponse<any>>("/radgrupos", {
+        qtype: "id",
+        query: idGrupo,
+        oper: "=",
+      });
+      if (response.data.total > 0) {
+        return {
+          download: response.data.registros[0].download,
+          upload: response.data.registros[0].upload,
+        };
+      }
+    } catch (err) {
+      console.error("[IXC] Erro ao buscar grupo de velocidade:", err);
+    }
+    return null;
+  },
+
+  /** Formata strings de velocidade do IXC (ex: 409600k -> 400 Mega) */
+  formatSpeed(speed: string): string {
+    if (!speed) return "—";
+    const numeric = parseInt(speed.replace(/\D/g, ""));
+    if (isNaN(numeric)) return speed;
+    
+    if (numeric >= 1024) {
+      const mega = Math.round(numeric / 1024);
+      return `${mega} Mega`;
+    }
+    return `${numeric}k`;
+  },
 
   /** Lista todas as faturas de um cliente */
   async getFaturas(
@@ -299,10 +367,16 @@ const ixcService = {
     const response = await api.post<IxcListResponse<IxcFatura>>(
       "/fn_areceber",
       {
-        qtype: "id_cliente",
-        query: idCliente,
-        oper: "=",
-        status: "A", // Filtro adicional conforme documentação
+        ...buildFilterBody(
+          [
+            { field: "id_cliente", type: "=", value: idCliente },
+            { field: "status", type: "=", value: "A" },
+          ],
+          1,
+          50,
+          "data_vencimento",
+          "desc"
+        ),
       }
     );
     return response.data.registros || [];
@@ -324,10 +398,46 @@ const ixcService = {
     return response.data.registros || [];
   },
 
+  /** Lista faturas pagas (recebidas), retornando as mais recentes */
+  async getFaturasPagas(idCliente: string, limit: number = 2): Promise<IxcFatura[]> {
+    const response = await api.post<IxcListResponse<IxcFatura>>(
+      "/fn_areceber",
+      {
+        ...buildFilterBody(
+          [
+            { field: "id_cliente", type: "=", value: idCliente },
+            { field: "status", type: "=", value: "R" },
+          ],
+          1,
+          100, // Busca todas as pagas
+          "data_vencimento",
+          "desc"
+        ),
+      }
+    );
+    const registros = response.data.registros || [];
+    
+    // O IXC pode ignorar sortorder com grid_param, então ordenamos localmente
+    registros.sort((a, b) => {
+      const dA = a.data_vencimento || "";
+      const dB = b.data_vencimento || "";
+      return dB.localeCompare(dA); // desc: mais recente primeiro
+    });
+    
+    return registros.slice(0, limit);
+  },
+
   /** Busca uma fatura específica por ID */
   async getFatura(idFatura: string): Promise<IxcFatura> {
-    const response = await api.get<IxcFatura>(`/fn_areceber/${idFatura}`);
-    return response.data;
+    const response = await api.post<IxcListResponse<IxcFatura>>("/fn_areceber", {
+      qtype: "id",
+      query: idFatura,
+      oper: "=",
+    });
+    if (response.data.total > 0) {
+      return response.data.registros[0];
+    }
+    throw new Error("Fatura não encontrada");
   },
 
   /** Gera / obtém o link de 2ª via do boleto */
@@ -412,25 +522,25 @@ const ixcService = {
     ];
 
     try {
+      // 1. Obtém o login do cliente para buscar no radacct
+      const conexoes = await ixcService.getConexao(idCliente);
+      if (conexoes.length === 0) return [];
+      const login = conexoes[0].login;
+
       const hoje = new Date();
       const seteDiasAtras = new Date(hoje);
       seteDiasAtras.setDate(hoje.getDate() - 6);
 
-      const formatDate = (d: Date) => d.toISOString().split("T")[0];
-
-      const response = await api.post<IxcListResponse<IxcConexao>>(
-        "/radusuarios",
+      // 2. Busca histórico no radacct pelo username
+      const response = await api.post<IxcListResponse<IxcRadAcct>>(
+        "/radacct",
         {
           ...buildFilterBody(
-            [
-              { field: "id_cliente", type: "=", value: idCliente },
-              { field: "acctstarttime", type: ">=", value: formatDate(seteDiasAtras) },
-              { field: "acctstarttime", type: "<=", value: formatDate(hoje) },
-            ],
+            [{ field: "username", type: "=", value: login }],
             1,
-            500,
+            1000, // Aumenta limite para pegar mais histórico
             "acctstarttime",
-            "asc"
+            "desc"
           ),
         }
       );
@@ -441,14 +551,65 @@ const ixcService = {
       const consumoPorDia: Record<number, number> = {};
       for (let i = 0; i < 7; i++) consumoPorDia[i] = 0;
 
-      // Agrupa bytes trafegados por dia da semana
+      // Helper para distribuir bytes entre datas
+      const distribuirConsumo = (startStr: string, endStr: string, bytes: number) => {
+        if (bytes <= 0) return;
+
+        let start: Date;
+        if (startStr.includes("/")) {
+          const [datePart] = startStr.split(" ");
+          const [d, m, y] = datePart.split("/");
+          start = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        } else {
+          start = new Date(startStr.replace(/-/g, "/"));
+        }
+
+        let end: Date;
+        if (!endStr) {
+          end = hoje;
+        } else if (endStr.includes("/")) {
+          const [datePart] = endStr.split(" ");
+          const [d, m, y] = datePart.split("/");
+          end = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        } else {
+          end = new Date(endStr.replace(/-/g, "/"));
+        }
+
+        // Calcula quantos dias a sessão durou (mínimo 1)
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+        const bytesPorDia = bytes / diffDays;
+
+        for (let i = 0; i < diffDays; i++) {
+          const d = new Date(start);
+          d.setDate(start.getDate() + i);
+          
+          if (d >= seteDiasAtras && d <= hoje) {
+            consumoPorDia[d.getDay()] += bytesPorDia;
+          }
+        }
+      };
+
+      // Agrupa bytes trafegados por dia da semana (Histórico)
       registros.forEach((r) => {
-        const data = new Date(r.acctstarttime || r.ultima_conexao);
-        const diaSemana = data.getDay();
+        if (!r.acctstarttime) return;
         const bytesTotal =
           parseFloat(r.acctinputoctets || "0") +
           parseFloat(r.acctoutputoctets || "0");
-        consumoPorDia[diaSemana] += bytesTotal;
+        
+        distribuirConsumo(r.acctstarttime, r.acctstoptime, bytesTotal);
+      });
+
+      // 3. Adiciona tráfego da sessão ATUAL (Online) do radusuarios
+      conexoes.forEach((c) => {
+        const bytesAtuais = 
+          parseFloat(c.upload_atual || c.acctinputoctets || "0") + 
+          parseFloat(c.download_atual || c.acctoutputoctets || "0");
+        
+        if (bytesAtuais > 0) {
+          const startSession = c.ultima_conexao_inicial || c.acctstarttime || seteDiasAtras.toISOString().split("T")[0];
+          distribuirConsumo(startSession, "", bytesAtuais);
+        }
       });
 
       // Ordena SEG→DOM: [1,2,3,4,5,6,0]
@@ -460,8 +621,8 @@ const ixcService = {
         value: Math.round((consumoPorDia[idx] / (1024 * 1024 * 1024)) * 100) / 100,
       }));
     } catch (error) {
-      console.error("[IXC] Erro ao buscar extrato de conexão (radusuarios):", error);
-      throw error;
+      console.error("[IXC] Erro ao buscar extrato de conexão (radacct):", error);
+      return [];
     }
   },
 
@@ -490,9 +651,23 @@ const ixcService = {
 
       // Busca os dados do plano vinculado ao contrato
       let plano: IxcPlano | null = null;
-      if (contrato?.id_vendaplano) {
+      const idPlano = contrato?.id_vendaplano || contrato?.id_vd_contrato;
+      
+      if (idPlano) {
         try {
-          plano = await ixcService.getPlano(contrato.id_vendaplano);
+          plano = await ixcService.getPlano(idPlano);
+          
+          // Se o plano não tem velocidades, tenta buscar no grupo de conexão
+          if ((!plano.download || plano.download === "—") && cliente.id) {
+            const conexoes = await ixcService.getConexao(cliente.id);
+            if (conexoes.length > 0 && conexoes[0].id_grupo) {
+              const grupo = await ixcService.getGrupo(conexoes[0].id_grupo);
+              if (grupo) {
+                plano.download = ixcService.formatSpeed(grupo.download);
+                plano.upload = ixcService.formatSpeed(grupo.upload);
+              }
+            }
+          }
         } catch {
           console.warn("[IXC] Não foi possível carregar o plano.");
         }
@@ -521,14 +696,15 @@ const ixcService = {
     totalEmAberto: number;
   }> {
     try {
-      // Busca todas as faturas + em aberto + vencidas em paralelo
-      const [todasRes, emAberto, vencidas] = await Promise.all([
-        ixcService.getFaturas(clienteId, 1, 50),
+      // Busca faturas em aberto + vencidas + as 2 últimas pagas
+      const [emAberto, vencidas, pagas] = await Promise.all([
         ixcService.getFaturasEmAberto(clienteId),
         ixcService.getFaturasVencidas(clienteId),
+        ixcService.getFaturasPagas(clienteId, 2),
       ]);
 
-      const historico = todasRes.registros || [];
+      // O histórico na UI mostrará: [Todas em Aberto] + [2 Últimas Pagas]
+      const historico = [...emAberto, ...pagas];
 
       // Calcula total em aberto (soma dos valores das faturas não pagas)
       const totalEmAberto = emAberto.reduce(
@@ -563,6 +739,9 @@ interface IxcRadAcct {
   acctinputoctets: string;
   acctoutputoctets: string;
   acctsessiontime: string;
+  login: string;
+  upload_atual: string;
+  download_atual: string;
 }
 
 /** Dados formatados para o gráfico de consumo semanal */
