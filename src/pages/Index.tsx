@@ -50,6 +50,7 @@ import pushNotificationService from "@/services/pushNotificationService";
 import { useNotificationNavigation } from "@/hooks/useNotificationNavigation";
 import { toast } from "sonner";
 import { Clipboard } from '@capacitor/clipboard';
+import { QRCodeSVG } from 'qrcode.react';
 
 type TabKey = "home" | "plans" | "finance" | "support";
 
@@ -956,9 +957,17 @@ const Index = () => {
 
       <div className="grid grid-cols-2 gap-3">
         {[
-          { icon: Wifi, label: "Problemas de Conexão" },
+          { 
+            icon: Wifi, 
+            label: "Problemas de Conexão", 
+            onClick: () => window.open(`https://wa.me/5551998093480?text=${encodeURIComponent("Olá! Estou com problemas na minha conexão e gostaria de suporte.")}`, '_blank') 
+          },
           { icon: Receipt, label: "2ª Via de Boleto", onClick: () => setActiveTab("finance") },
-          { icon: Calendar, label: "Agendar Visita" },
+          { 
+            icon: Calendar, 
+            label: "Agendar Visita", 
+            onClick: () => window.open(`https://wa.me/5551998093480?text=${encodeURIComponent("Olá! Gostaria de agendar uma visita técnica.")}`, '_blank') 
+          },
           { icon: CreditCard, label: "Alterar Dados", onClick: openEditData },
         ].map((item, index) => (
           <button
@@ -1275,28 +1284,30 @@ const Index = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center justify-center py-4 space-y-6">
-            <div className="bg-white p-4 rounded-3xl shadow-sm border border-border">
-              {qrCodeModal.invoice?.qr_code_pix ? (
-                <img 
-                  src={qrCodeModal.invoice.qr_code_pix.startsWith("data:") || qrCodeModal.invoice.qr_code_pix.startsWith("http") ? qrCodeModal.invoice.qr_code_pix : `data:image/png;base64,${qrCodeModal.invoice.qr_code_pix}`} 
-                  alt="QR Code Pix" 
-                  className="w-48 h-48 object-contain" 
+            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-border flex items-center justify-center w-64 h-64 mx-auto">
+              {qrCodeModal.invoice?.pix_copia_e_cola ? (
+                <QRCodeSVG 
+                  value={qrCodeModal.invoice.pix_copia_e_cola}
+                  size={200}
+                  level="H"
+                  includeMargin={false}
+                  className="w-full h-full"
                 />
               ) : (
-                <div className="w-48 h-48 flex items-center justify-center bg-slate-100 rounded-2xl flex-col gap-2">
-                  <QrCode className="w-12 h-12 text-slate-400" />
-                  <span className="text-xs text-slate-500 font-medium px-4 text-center">QR Code não fornecido pela API</span>
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                  <span className="text-xs text-muted-foreground font-medium">Gerando Pix...</span>
                 </div>
               )}
             </div>
             
             <div className="w-full space-y-2 text-center mt-4">
-              <p className="text-sm font-medium text-muted-foreground mb-3">
-                Se preferir, use o Pix Copia e Cola
+              <p className="text-sm font-medium text-muted-foreground mb-3 px-4 leading-tight">
+                Se preferir, use o Pix Copia e Cola para pagar pelo seu banco
               </p>
               <Button 
                 onClick={() => copyToClipboard(qrCodeModal.invoice?.pix_copia_e_cola, "Pix", "modal")}
-                className="w-full h-12 bg-[#00e5ff] text-slate-900 shadow-[0_0_15px_rgba(0,229,255,0.2)] hover:bg-[#00e5ff]/90 font-semibold gap-2 rounded-xl"
+                className="w-full h-14 bg-[#00e5ff] text-slate-900 shadow-[0_0_20px_rgba(0,229,255,0.25)] hover:bg-[#00e5ff]/90 font-bold text-base gap-3 rounded-2xl transition-all active:scale-[0.98]"
               >
                 <Copy className="w-5 h-5" />
                 {copyStatus === 'pix-modal' ? "Copiado!" : "Copiar Código Pix"}
