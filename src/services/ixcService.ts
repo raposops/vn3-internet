@@ -839,13 +839,14 @@ const ixcService = {
   async getPixData(idFatura: string): Promise<IxcPixData | null> {
     try {
       const response = await api.post("/get_pix", {
-        boletos: idFatura,
+        id_areceber: idFatura,
       });
 
       if (response.data && response.data.type !== "error" && response.data.pix) {
+        const qr = response.data.pix.qrCode;
         return {
-          qrcode: response.data.pix.qrCode?.qrcode || "",
-          copia_e_cola: response.data.pix.qrCode?.payload || "",
+          qrcode: qr?.imagemQrcode || qr?.imagemSrc || "",
+          copia_e_cola: qr?.qrcode || "",
         };
       }
       

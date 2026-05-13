@@ -166,7 +166,7 @@ const Index = () => {
           // Opcional: atualizar o estado local das faturas para não buscar de novo
         } else {
           toast.dismiss();
-          toast.error("Não foi possível gerar o código Pix para esta fatura.");
+          toast.error("O Pix ainda não foi gerado para este boleto no IXC.");
           return;
         }
         toast.dismiss();
@@ -184,14 +184,18 @@ const Index = () => {
           textToCopy = pixData.copia_e_cola;
         } else {
           toast.dismiss();
-          toast.error("Não foi possível gerar o código Pix.");
+          toast.error("O Pix ainda não foi gerado para este boleto no IXC.");
           return;
         }
         toast.dismiss();
       } catch (err) {
         toast.dismiss();
+        toast.error("Erro ao comunicar com o servidor Pix.");
         return;
       }
+    } else if (type === "Pix" && !textToCopy) {
+      toast.error("O Pix ainda não foi gerado para este boleto no IXC.");
+      return;
     }
 
     if (!textToCopy) {
@@ -490,7 +494,7 @@ const Index = () => {
           {/* Invoice Action Buttons (Home) */}
           <div className="mt-6 flex flex-col gap-3">
             <Button 
-              onClick={() => copyToClipboard(faturaDestaque?.pix_copia_e_cola || faturaDestaque?.linha_digitavel, "Pix", "home")}
+              onClick={() => copyToClipboard(faturaDestaque?.pix_copia_e_cola, "Pix", "home")}
               className="relative h-12 w-full rounded-2xl bg-[#00e5ff] text-base font-semibold text-slate-900 shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:bg-[#00e5ff]/90 gap-2"
             >
               <QrCode className="w-5 h-5" />
@@ -741,6 +745,7 @@ const Index = () => {
       dueDate: formatIxcDate(f.data_vencimento),
       paidAt: f.data_pagamento ? formatIxcDate(f.data_pagamento) : undefined,
       linha_digitavel: f.linha_digitavel,
+      pix_copia_e_cola: f.pix_copia_e_cola,
     }));
 
     return (
@@ -821,7 +826,7 @@ const Index = () => {
               {!isPaid && (
                 <div className="flex flex-col gap-2">
                   <Button
-                    onClick={() => copyToClipboard(invoice.pix_copia_e_cola || invoice.linha_digitavel, "Pix", invoice.id)}
+                    onClick={() => copyToClipboard(invoice.pix_copia_e_cola, "Pix", invoice.id)}
                     className="h-11 w-full rounded-xl bg-[#00e5ff] font-semibold text-slate-900 shadow-lg shadow-cyan-500/20 hover:bg-[#00e5ff]/90 gap-2"
                   >
                     <QrCode className="w-4 h-4" />
@@ -1272,7 +1277,7 @@ const Index = () => {
                 Se preferir, use o Pix Copia e Cola
               </p>
               <Button 
-                onClick={() => copyToClipboard(qrCodeModal.invoice?.pix_copia_e_cola || qrCodeModal.invoice?.linha_digitavel, "Pix", "modal")}
+                onClick={() => copyToClipboard(qrCodeModal.invoice?.pix_copia_e_cola, "Pix", "modal")}
                 className="w-full h-12 bg-[#00e5ff] text-slate-900 shadow-[0_0_15px_rgba(0,229,255,0.2)] hover:bg-[#00e5ff]/90 font-semibold gap-2 rounded-xl"
               >
                 <Copy className="w-5 h-5" />
