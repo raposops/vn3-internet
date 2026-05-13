@@ -27,6 +27,8 @@ import {
   Copy,
   FileDown,
   AlertCircle,
+  QrCode,
+  Barcode,
   Loader2,
   X,
   WifiOff,
@@ -34,12 +36,16 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import ixcService from "@/services/ixcService";
 import type { IxcCliente, IxcFatura, IxcContrato, IxcPlano } from "@/services/ixcService";
 import type { DailyConsumption } from "@/services/ixcService";
 import localCache from "@/services/localCache";
+import { storageService } from "@/services/storageService";
 import pushNotificationService from "@/services/pushNotificationService";
 import { useNotificationNavigation } from "@/hooks/useNotificationNavigation";
+import { toast } from "sonner";
+import { Clipboard } from '@capacitor/clipboard';
 
 type TabKey = "home" | "plans" | "finance" | "support";
 
@@ -142,18 +148,98 @@ const Index = () => {
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({ email: "", telefone_celular: "" });
   const [isSavingData, setIsSavingData] = useState(false);
+  const [qrCodeModal, setQrCodeModal] = useState<{ isOpen: boolean; invoice?: IxcFatura }>({ isOpen: false });
 
-  const handleCopyPix = (code?: string) => {
-    if (!code) {
-      alert("Código Pix não disponível para esta fatura.");
+  const copyToClipboard = async (text: string | undefined, type: "Pix" | "Barcode", itemId: string = "default") => {
+    const statusKey = `${type.toLowerCase()}-${itemId}`;
+    const label = type === "Pix" ? "Código Pix" : "Código de barras";
+    
+    let textToCopy = text;
+
+    // Se for Pix e o texto estiver ausente, tenta buscar na API
+    if (type === "Pix" && !textToCopy && itemId !== "default" && itemId !== "home") {
+      try {
+        toast.loading("Gerando código Pix...");
+        const pixData = await ixcService.getPixData(itemId);
+        if (pixData?.copia_e_cola) {
+          textToCopy = pixData.copia_e_cola;
+          // Opcional: atualizar o estado local das faturas para não buscar de novo
+        } else {
+          toast.dismiss();
+          toast.error("Não foi possível gerar o código Pix para esta fatura.");
+          return;
+        }
+        toast.dismiss();
+      } catch (err) {
+        toast.dismiss();
+        toast.error("Erro ao comunicar com o servidor Pix.");
+        return;
+      }
+    } else if (type === "Pix" && !textToCopy && itemId === "home" && faturaDestaque) {
+       // Caso especial para a home
+       try {
+        toast.loading("Gerando código Pix...");
+        const pixData = await ixcService.getPixData(faturaDestaque.id);
+        if (pixData?.copia_e_cola) {
+          textToCopy = pixData.copia_e_cola;
+        } else {
+          toast.dismiss();
+          toast.error("Não foi possível gerar o código Pix.");
+          return;
+        }
+        toast.dismiss();
+      } catch (err) {
+        toast.dismiss();
+        return;
+      }
+    }
+
+    if (!textToCopy) {
+      toast.error(type === "Pix" ? "Código Pix não disponível." : "Código de barras não disponível.");
       return;
     }
-    navigator.clipboard.writeText(code);
-    setCopyStatus("Código copiado!");
-    setTimeout(() => setCopyStatus(null), 3000);
-    alert("Código Pix copiado para a área de transferência!");
+
+    try {
+      // Tenta usar o Capacitor Clipboard nativo ou o navegador moderno (requer HTTPS ou localhost)
+      await Clipboard.write({ string: textToCopy });
+      onCopySuccess(statusKey, label, type);
+    } catch (error) {
+      console.warn("Clipboard nativo indisponível. Tentando fallback...", error);
+      
+      // Fallback legado para conexões HTTP via rede local (10.0.0.x)
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+          onCopySuccess(statusKey, label, type);
+        } else {
+          toast.error(`Não foi possível copiar o ${label.toLowerCase()} neste navegador.`);
+        }
+      } catch (fallbackError) {
+        toast.error(`Não foi possível copiar o ${label.toLowerCase()} neste dispositivo.`);
+      }
+    }
   };
 
+  const onCopySuccess = (key: string, label: string, type: string) => {
+    setCopyStatus(key);
+    toast.success(`${label} copiado!`, {
+      description: type === "Pix" ? "Cole no aplicativo do seu banco para pagar." : "Cole no app do seu banco para pagamento.",
+    });
+    setTimeout(() => setCopyStatus(null), 3000);
+  };
   const handleDownloadBoleto = async (invoiceId: string) => {
     try {
       setDownloadingInvoiceId(invoiceId);
@@ -192,10 +278,10 @@ const Index = () => {
       // Atualiza o estado local e cache
       const updatedCliente = { ...cliente, ...editFormData };
       setCliente(updatedCliente);
-      sessionStorage.setItem("ixc_cliente_data", JSON.stringify(updatedCliente));
+      await storageService.set("ixc_cliente_data", updatedCliente);
       
-      const cached = localCache.getAll();
-      localCache.saveAll({
+      const cached = await localCache.getAll();
+      await localCache.saveAll({
         ...cached,
         cliente: updatedCliente,
       } as any);
@@ -251,21 +337,25 @@ const Index = () => {
 
   // ─── Carrega dados: cache primeiro, API em background ─────
   useEffect(() => {
-    // 1️⃣ Carrega cache instantaneamente (sem spinner)
-    const cached = localCache.getAll();
-    const hasCache = localCache.hasCache();
+    async function initData() {
+      // 1️⃣ Carrega cache (agora assíncrono via Capacitor Preferences)
+      const cached = await localCache.getAll();
+      const hasCache = await localCache.hasCache();
 
-    if (hasCache) {
-      setCliente(cached.cliente);
-      setContrato(cached.contrato);
-      setPlano(cached.plano);
-      setFaturas(cached.faturas);
-      setConsumo(cached.consumo ?? undefined);
-      setIsLoading(false); // UI aparece instantaneamente
+      if (hasCache) {
+        setCliente(cached.cliente);
+        setContrato(cached.contrato);
+        setPlano(cached.plano);
+        setFaturas(cached.faturas);
+        setConsumo(cached.consumo ?? undefined);
+        setIsLoading(false); // UI aparece rapidamente
+      }
+
+      // 2️⃣ Atualiza da API em background
+      await refreshFromApi(cached, hasCache);
     }
 
-    // 2️⃣ Atualiza da API em background
-    async function refreshFromApi() {
+    async function refreshFromApi(cached: any, hasCache: boolean) {
       if (hasCache) {
         setIsRefreshing(true); // indicador sutil, não bloqueia UI
       } else {
@@ -275,7 +365,7 @@ const Index = () => {
 
       try {
         // Tenta sessão ou cache para obter CPF
-        const clienteLogado = ixcService.getClienteLogado() || cached.cliente;
+        const clienteLogado = await ixcService.getClienteLogado() || cached.cliente;
         if (!clienteLogado) {
           if (!hasCache) {
             setApiError("Sessão expirada. Faça login novamente.");
@@ -324,11 +414,11 @@ const Index = () => {
       }
     }
 
-    refreshFromApi();
+    initData();
 
     // 4️⃣ Inicializa Push Notifications
-    setTimeout(() => {
-      const currentCliente = ixcService.getClienteLogado();
+    setTimeout(async () => {
+      const currentCliente = await ixcService.getClienteLogado();
       if (currentCliente) {
         pushNotificationService.initializeAfterLogin().then((token) => {
           if (token) {
@@ -342,8 +432,8 @@ const Index = () => {
   // Fatura em destaque (vencida ou próxima em aberto)
   const faturaDestaque = faturas?.vencidas[0] || faturas?.emAberto[0] || null;
 
-  const handleLogout = () => {
-    ixcService.logout();
+  const handleLogout = async () => {
+    await ixcService.logout();
     localCache.clear(); // Limpa cache local no logout
     pushNotificationService.clearOnLogout(); // Limpa dados de push
     setIsDrawerOpen(false);
@@ -397,12 +487,53 @@ const Index = () => {
             </p>
           </div>
 
-          <Button 
-            onClick={() => handleCopyPix(faturaDestaque?.linha_digitavel)}
-            className="relative mt-6 h-12 w-full rounded-2xl bg-accent text-base font-semibold text-white shadow-lg hover:bg-accent/90"
-          >
-            {copyStatus || "Pagar com Pix (Copia e Cola)"}
-          </Button>
+          {/* Invoice Action Buttons (Home) */}
+          <div className="mt-6 flex flex-col gap-3">
+            <Button 
+              onClick={() => copyToClipboard(faturaDestaque?.pix_copia_e_cola || faturaDestaque?.linha_digitavel, "Pix", "home")}
+              className="relative h-12 w-full rounded-2xl bg-[#00e5ff] text-base font-semibold text-slate-900 shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:bg-[#00e5ff]/90 gap-2"
+            >
+              <QrCode className="w-5 h-5" />
+              {copyStatus === 'pix-home' ? "Pix Copiado!" : "Pix Copia e Cola"}
+            </Button>
+            
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => copyToClipboard(faturaDestaque?.linha_digitavel, "Barcode", "home")}
+                variant="secondary"
+                className="relative h-12 flex-1 rounded-2xl bg-white/10 text-white hover:bg-white/20 border border-white/10 gap-2"
+              >
+                <Barcode className="w-5 h-5 opacity-80" />
+                {copyStatus === 'barcode-home' ? "Copiado!" : "Código de Barras"}
+              </Button>
+              
+              <Button
+                onClick={async () => {
+                  if (!faturaDestaque) return;
+                  try {
+                    toast.loading("Carregando QR Code...");
+                    const pixData = await ixcService.getPixData(faturaDestaque.id);
+                    toast.dismiss();
+                    
+                    const invoiceWithPix = { 
+                      ...faturaDestaque,
+                      pix_copia_e_cola: pixData?.copia_e_cola,
+                      qr_code_pix: pixData?.qrcode
+                    } as IxcFatura;
+                    
+                    setQrCodeModal({ isOpen: true, invoice: invoiceWithPix });
+                  } catch (err) {
+                    toast.dismiss();
+                  }
+                }}
+                variant="secondary"
+                className="h-12 w-12 shrink-0 rounded-2xl bg-white/10 text-white hover:bg-white/20 border border-white/10 p-0"
+                title="Ver QR Code"
+              >
+                <QrCode className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
 
           <button
             type="button"
@@ -688,27 +819,68 @@ const Index = () => {
 
               {/* Action buttons */}
               {!isPaid && (
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-2">
                   <Button
-                    onClick={() => handleCopyPix(invoice.linha_digitavel)}
-                    className="flex-1 h-11 rounded-xl bg-accent font-semibold text-white hover:bg-accent/90 gap-2"
+                    onClick={() => copyToClipboard(invoice.pix_copia_e_cola || invoice.linha_digitavel, "Pix", invoice.id)}
+                    className="h-11 w-full rounded-xl bg-[#00e5ff] font-semibold text-slate-900 shadow-lg shadow-cyan-500/20 hover:bg-[#00e5ff]/90 gap-2"
                   >
-                    <Copy className="w-4 h-4" />
-                    Pix Copia e Cola
+                    <QrCode className="w-4 h-4" />
+                    {copyStatus === `pix-${invoice.id}` ? "Pix Copiado!" : "Pix Copia e Cola"}
                   </Button>
-                  <Button
-                    onClick={() => handleDownloadBoleto(invoice.id)}
-                    disabled={downloadingInvoiceId === invoice.id}
-                    variant="outline"
-                    className="h-11 w-11 rounded-xl border-border p-0 hover:bg-primary/5"
-                    title="Baixar Boleto"
-                  >
-                    {downloadingInvoiceId === invoice.id ? (
-                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <FileDown className="w-5 h-5 text-primary" />
-                    )}
-                  </Button>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => copyToClipboard(invoice.linha_digitavel, "Barcode", invoice.id)}
+                      variant="outline"
+                      className="h-11 flex-1 rounded-xl border-border bg-transparent font-medium hover:bg-muted gap-2"
+                    >
+                      <Barcode className="w-4 h-4 opacity-70" />
+                      {copyStatus === `barcode-${invoice.id}` ? "Copiado!" : "Código de Barras"}
+                    </Button>
+
+                    <Button
+                      onClick={async () => {
+                        // Busca dados frescos do PIX antes de abrir o modal
+                        try {
+                          toast.loading("Carregando QR Code...");
+                          const pixData = await ixcService.getPixData(invoice.id);
+                          toast.dismiss();
+                          
+                          const invoiceWithPix = { 
+                            ...faturas?.historico.find(f => f.id === invoice.id),
+                            id: invoice.id,
+                            valor: invoice.amount.replace(/[^\d.,]/g, "").replace(",", "."),
+                            pix_copia_e_cola: pixData?.copia_e_cola,
+                            qr_code_pix: pixData?.qrcode
+                          } as IxcFatura;
+                          
+                          setQrCodeModal({ isOpen: true, invoice: invoiceWithPix });
+                        } catch (err) {
+                          toast.dismiss();
+                          toast.error("Erro ao carregar QR Code.");
+                        }
+                      }}
+                      variant="outline"
+                      className="h-11 w-11 shrink-0 rounded-xl border-border p-0 hover:bg-muted"
+                      title="Ver QR Code"
+                    >
+                      <QrCode className="w-4 h-4 opacity-70" />
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleDownloadBoleto(invoice.id)}
+                      disabled={downloadingInvoiceId === invoice.id}
+                      variant="outline"
+                      className="h-11 w-11 shrink-0 rounded-xl border-border p-0 hover:bg-muted"
+                      title="Baixar Boleto"
+                    >
+                      {downloadingInvoiceId === invoice.id ? (
+                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <FileDown className="w-4 h-4 opacity-70" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               )}
             </article>
@@ -1069,6 +1241,47 @@ const Index = () => {
           </div>
         </div>
       )}
+
+      {/* QR Code Modal */}
+      <Dialog open={qrCodeModal.isOpen} onOpenChange={(open) => setQrCodeModal(prev => ({ ...prev, isOpen: open }))}>
+        <DialogContent className="sm:max-w-md bg-card border-border w-[90%] rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-foreground text-center text-xl">Pagar com Pix</DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              Escaneie o código QR abaixo com o aplicativo do seu banco para pagar a fatura de <strong className="text-foreground">{qrCodeModal.invoice ? formatValor(qrCodeModal.invoice.valor) : ""}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center py-4 space-y-6">
+            <div className="bg-white p-4 rounded-3xl shadow-sm border border-border">
+              {qrCodeModal.invoice?.qr_code_pix ? (
+                <img 
+                  src={qrCodeModal.invoice.qr_code_pix.startsWith("data:") || qrCodeModal.invoice.qr_code_pix.startsWith("http") ? qrCodeModal.invoice.qr_code_pix : `data:image/png;base64,${qrCodeModal.invoice.qr_code_pix}`} 
+                  alt="QR Code Pix" 
+                  className="w-48 h-48 object-contain" 
+                />
+              ) : (
+                <div className="w-48 h-48 flex items-center justify-center bg-slate-100 rounded-2xl flex-col gap-2">
+                  <QrCode className="w-12 h-12 text-slate-400" />
+                  <span className="text-xs text-slate-500 font-medium px-4 text-center">QR Code não fornecido pela API</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="w-full space-y-2 text-center mt-4">
+              <p className="text-sm font-medium text-muted-foreground mb-3">
+                Se preferir, use o Pix Copia e Cola
+              </p>
+              <Button 
+                onClick={() => copyToClipboard(qrCodeModal.invoice?.pix_copia_e_cola || qrCodeModal.invoice?.linha_digitavel, "Pix", "modal")}
+                className="w-full h-12 bg-[#00e5ff] text-slate-900 shadow-[0_0_15px_rgba(0,229,255,0.2)] hover:bg-[#00e5ff]/90 font-semibold gap-2 rounded-xl"
+              >
+                <Copy className="w-5 h-5" />
+                {copyStatus === 'pix-modal' ? "Copiado!" : "Copiar Código Pix"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

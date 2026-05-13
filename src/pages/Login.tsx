@@ -93,7 +93,7 @@ const Login = () => {
       }
 
       // Login bem-sucedido — persiste no cache local para abertura rápida
-      localCache.saveCliente(cliente);
+      await localCache.saveCliente(cliente);
 
       setIsLoading(false);
       navigate("/");

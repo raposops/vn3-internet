@@ -12,6 +12,7 @@ import SplashScreen from "./pages/SplashScreen.tsx";
 import PushNotificationBanner from "./components/PushNotificationBanner.tsx";
 import pushNotificationService from "./services/pushNotificationService.ts";
 import { dispatchNotificationNav } from "./hooks/useNotificationNavigation.ts";
+import { storageService } from "./services/storageService";
 
 const queryClient = new QueryClient();
 
@@ -30,10 +31,24 @@ const AnimatedRoutes = () => {
   );
 };
 
-/* Fluxo: SplashScreen (3s) → /login → / (Home) */
+/* Fluxo: SplashScreen (3s) → /login ou / (Home) */
 const App = () => {
   // "splash" | "app"
   const [phase, setPhase] = useState<"splash" | "app">("splash");
+  const [initialRoute, setInitialRoute] = useState<string | null>(null);
+
+  // ─── Verifica a sessão salva nativamente (Reidratação) ────────
+  useEffect(() => {
+    async function checkSession() {
+      try {
+        const isLoggedIn = await storageService.get("isLoggedIn");
+        setInitialRoute(isLoggedIn ? "/" : "/login");
+      } catch (err) {
+        setInitialRoute("/login");
+      }
+    }
+    checkSession();
+  }, []);
 
   // ─── Inicializa listener de foreground push (uma vez) ─────
   useEffect(() => {
@@ -57,16 +72,16 @@ const App = () => {
         {/* Banner de notificações push (foreground) */}
         <PushNotificationBanner onActionClick={handleNotificationAction} />
 
-        {/* Splash overlay — cobre tudo enquanto phase === "splash" */}
+        {/* Splash overlay — cobre tudo enquanto phase === "splash" ou sessão não carregou */}
         <AnimatePresence>
-          {phase === "splash" && (
+          {(phase === "splash" || !initialRoute) && (
             <SplashScreen onFinish={() => setPhase("app")} />
           )}
         </AnimatePresence>
 
-        {/* App só renderiza após a splash terminar — inicia direto no /login */}
-        {phase === "app" && (
-          <MemoryRouter initialEntries={["/login"]}>
+        {/* App só renderiza após a splash terminar e descobrirmos a rota inicial */}
+        {phase === "app" && initialRoute && (
+          <MemoryRouter initialEntries={[initialRoute]}>
             <AnimatedRoutes />
           </MemoryRouter>
         )}

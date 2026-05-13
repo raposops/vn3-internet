@@ -1,31 +1,20 @@
 /* ═══════════════════════════════════════════════════════════════
-   IXC Provedor — Configuração Central
-   Domínio, token e headers de autenticação da API.
+   VN3 Internet — Configuração da API Central
+   Aponta para o Backend Intermediário (Edge Function).
    ═══════════════════════════════════════════════════════════════ */
 
-// ─── Domínio do servidor IXC do cliente ───────────────────────
-export const IXC_BASE_URL =
-  import.meta.env.VITE_IXC_BASE_URL || "https://4419.ixcsoft.com";
-
-// ─── Token de acesso à API ────────────────────────────────────
-const IXC_API_TOKEN =
-  import.meta.env.VITE_IXC_API_TOKEN || "";
-
-// ─── Endpoint base da API REST ────────────────────────────────
-// Em dev, usa o proxy do Vite para contornar CORS.
-// Em produção, aponta direto para o servidor IXC.
+// ─── Endpoint base da API (Backend Proxy) ─────────────────────
+// Em Dev: Usa o proxy seguro do Vite (/ixc-api).
+// Em Prod: Aponta para sua Serverless/Edge Function real.
 const isDev = import.meta.env.DEV;
-export const IXC_API_URL = isDev
-  ? "/ixc-api"
-  : `${IXC_BASE_URL}/webservice/v1`;
+export const API_URL = isDev ? "/ixc-api" : (import.meta.env.VITE_API_URL || "https://sua-edge-function.com/api");
 
-// ─── Headers de autenticação ──────────────────────────────────
-//  A API IXC usa Basic Auth com o token codificado em Base64.
-export const IXC_AUTH_HEADERS = {
+// ─── Headers Padrão ───────────────────────────────────────────
+// A autenticação Master (Token IXC) agora fica apenas no backend.
+// O front envia apenas headers padrão de requisição JSON.
+export const DEFAULT_HEADERS = {
   "Content-Type": "application/json",
-  "Authorization": `Basic ${btoa(IXC_API_TOKEN)}`,
-  "ixcsoft": "listar",
 } as const;
 
 // ─── Timeout padrão (ms) ─────────────────────────────────────
-export const IXC_TIMEOUT = 15_000;
+export const API_TIMEOUT = 15_000;

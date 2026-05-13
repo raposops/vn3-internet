@@ -1,4 +1,5 @@
 import api from "./api";
+import { storageService } from "./storageService";
 
 /* ═══════════════════════════════════════════════════════════════
    IXC Provedor — Service API
@@ -59,9 +60,16 @@ export interface IxcFatura {
   nossonumero: string;
   gateway_link: string;
   linha_digitavel: string;
+  pix_copia_e_cola?: string;
+  qr_code_pix?: string;
   id_contrato: string;
   data_pagamento: string;
   obs: string;
+}
+
+export interface IxcPixData {
+  qrcode: string;
+  copia_e_cola: string;
 }
 
 /** Plano de internet */
@@ -200,8 +208,10 @@ const ixcService = {
 
       if (response.data.total > 0) {
         const cliente = response.data.registros[0];
-        // Armazena dados do cliente na sessão
-        sessionStorage.setItem("ixc_cliente_data", JSON.stringify(cliente));
+        // O backend real deve gerar um JWT; aqui usamos o ID como mock para o Bearer
+        await storageService.set("ixc_cliente_token", cliente.id);
+        await storageService.set("ixc_cliente_data", cliente);
+        await storageService.set("isLoggedIn", true);
         return cliente;
       }
 
@@ -213,15 +223,13 @@ const ixcService = {
   },
 
   /** Limpa os dados de sessão do cliente */
-  logout(): void {
-    sessionStorage.removeItem("ixc_cliente_token");
-    sessionStorage.removeItem("ixc_cliente_data");
+  async logout(): Promise<void> {
+    await storageService.clear();
   },
 
   /** Retorna os dados do cliente logado (da sessão) */
-  getClienteLogado(): IxcCliente | null {
-    const data = sessionStorage.getItem("ixc_cliente_data");
-    return data ? JSON.parse(data) : null;
+  async getClienteLogado(): Promise<IxcCliente | null> {
+    return await storageService.get<IxcCliente>("ixc_cliente_data");
   },
 
   // ─── Cliente ──────────────────────────────────────────────
@@ -775,7 +783,7 @@ const ixcService = {
       }
 
       // Atualiza sessão com dados frescos
-      sessionStorage.setItem("ixc_cliente_data", JSON.stringify(cliente));
+      await storageService.set("ixc_cliente_data", cliente);
 
       return { cliente, contrato, plano };
     } catch (error) {
@@ -822,6 +830,37 @@ const ixcService = {
     } catch (error) {
       console.error("[IXC] Erro ao buscar faturas:", error);
       throw error;
+    }
+  },
+
+  /**
+   * Busca dados de PIX (Copia e Cola + QR Code) para uma fatura.
+   */
+  async getPixData(idFatura: string): Promise<IxcPixData | null> {
+    try {
+      const response = await api.post("/get_pix", {
+        boletos: idFatura,
+      });
+
+      if (response.data && response.data.type !== "error" && response.data.pix) {
+        return {
+          qrcode: response.data.pix.qrCode?.qrcode || "",
+          copia_e_cola: response.data.pix.qrCode?.payload || "",
+        };
+      }
+      
+      // Fallback para outros formatos de resposta do IXC
+      if (response.data && response.data.payload) {
+        return {
+          qrcode: response.data.qrcode || "",
+          copia_e_cola: response.data.payload || "",
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error("[IXC] Erro ao buscar dados do PIX:", error);
+      return null;
     }
   },
 

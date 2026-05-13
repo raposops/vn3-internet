@@ -1,11 +1,11 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import { IXC_API_URL, IXC_AUTH_HEADERS, IXC_TIMEOUT } from "./ixcConfig";
+import { API_URL, DEFAULT_HEADERS, API_TIMEOUT } from "./ixcConfig";
 
 /* ═══════════════════════════════════════════════════════════════
    VN3 Internet — Instância Axios Configurada
-   Exporta um client HTTP pronto para uso com a API IXC.
+   Exporta um client HTTP pronto para uso com o Backend Intermediário.
 
-   Configuração (baseURL e token) centralizada em:
+   Configuração (baseURL) centralizada em:
      src/services/ixcConfig.ts  →  .env
 
    Uso:
@@ -16,19 +16,21 @@ import { IXC_API_URL, IXC_AUTH_HEADERS, IXC_TIMEOUT } from "./ixcConfig";
 // ─── Instância principal ─────────────────────────────────────
 
 const api = axios.create({
-  baseURL: IXC_API_URL,
-  headers: { ...IXC_AUTH_HEADERS },
-  timeout: IXC_TIMEOUT,
+  baseURL: API_URL,
+  headers: { ...DEFAULT_HEADERS },
+  timeout: API_TIMEOUT,
 });
 
 // ─── Request Interceptor ─────────────────────────────────────
-// Injeta token dinâmico do cliente (quando logado) em cada request.
+// Injeta o token de sessão do cliente (recebido do nosso backend) em cada request.
+// O backend será responsável por usar a Chave Master do IXC.
 
 api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const clienteToken = sessionStorage.getItem("ixc_cliente_token");
+  async (config: InternalAxiosRequestConfig) => {
+    const { storageService } = await import("./storageService");
+    const clienteToken = await storageService.get<string>("ixc_cliente_token");
     if (clienteToken && config.headers) {
-      config.headers["Authorization"] = `Basic ${btoa(`token:${clienteToken}`)}`;
+      config.headers["Authorization"] = `Bearer ${clienteToken}`;
     }
     return config;
   },
@@ -49,8 +51,11 @@ api.interceptors.response.use(
           console.error("[API] Não autorizado — token inválido ou expirado.");
           // Aviso claro ao usuário conforme solicitado
           alert("Sua sessão expirou ou o token de acesso é inválido. Por favor, faça login novamente.");
-          sessionStorage.removeItem("ixc_cliente_token");
-          sessionStorage.removeItem("ixc_cliente_data");
+          import("./storageService").then(({ storageService }) => {
+            storageService.remove("ixc_cliente_token");
+            storageService.remove("ixc_cliente_data");
+            storageService.remove("isLoggedIn");
+          });
           // Redireciona para login se não estiver lá
           if (window.location.pathname !== "/login") {
             window.location.href = "/login";
