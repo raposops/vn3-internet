@@ -446,6 +446,28 @@ const ixcService = {
     return fatura.gateway_link || "";
   },
 
+  /** Solicita o desbloqueio de confiança para um contrato */
+  async solicitarDesbloqueioConfianca(idContrato: string): Promise<boolean> {
+    try {
+      // Endpoint padrão da documentação IXC para solicitar o desbloqueio.
+      // Pode variar dependendo de configurações internas do servidor do provedor.
+      const response = await api.post("/cliente_contrato_desbloqueio_confianca", {
+        qtype: "id",
+        query: idContrato,
+        oper: "=",
+      });
+      // Verifica se a API retornou erro específico
+      if (response.data && response.data.type === "error") {
+        throw new Error(response.data.message);
+      }
+      return true;
+    } catch (err: any) {
+      console.error("[IXC] Erro ao solicitar desbloqueio de confiança:", err);
+      // O endpoint pode estar desativado na versão do provedor
+      throw new Error(err?.response?.data?.message || err.message || "Erro desconhecido");
+    }
+  },
+
   // ─── Ordens de Serviço (Suporte) ─────────────────────────
 
   /** Lista ordens de serviço de um cliente */
@@ -627,8 +649,49 @@ const ixcService = {
   },
 
   // ═══════════════════════════════════════════════════════════
-  //  FUNÇÕES DE BUSCA — Alto nível para uso direto nas telas
+  //  FUNÇÕES DE BUSCA E ATUALIZAÇÃO
   // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Atualiza dados de contato do cliente (E-mail e Telefone)
+   * O IXC exige o objeto completo, então buscamos, modificamos e salvamos.
+   */
+  async atualizarDadosCliente(idCliente: string, dados: { email?: string; telefone_celular?: string }): Promise<void> {
+    try {
+      // 1. Busca o cliente completo com cabecalho ixcsoft=listar
+      const response = await api.post<IxcListResponse<any>>("/cliente", {
+        qtype: "id",
+        query: idCliente,
+        oper: "=",
+      }, {
+        headers: {
+          ixcsoft: "listar"
+        }
+      });
+      
+      if (response.data.total === 0) {
+        throw new Error("Cliente não encontrado para atualização.");
+      }
+      
+      const clienteCompleto = response.data.registros[0];
+      
+      // 2. Modifica apenas os campos informados
+      if (dados.email !== undefined) clienteCompleto.email = dados.email;
+      if (dados.telefone_celular !== undefined) clienteCompleto.telefone_celular = dados.telefone_celular;
+      
+      // 3. Salva via PUT
+      // O endpoint PUT não requer o ixcsoft=listar (é uma atualização de registro específico)
+      const updateResponse = await api.put(`/cliente/${idCliente}`, clienteCompleto);
+      
+      if (updateResponse.data && updateResponse.data.type === "error") {
+        throw new Error(updateResponse.data.message);
+      }
+      
+    } catch (error: any) {
+      console.error("[IXC] Erro ao atualizar dados do cliente:", error);
+      throw new Error(error?.response?.data?.message || error.message || "Falha ao atualizar dados.");
+    }
+  },
 
   // ─── getProfile ───────────────────────────────────────────
 

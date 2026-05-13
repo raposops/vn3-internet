@@ -28,6 +28,7 @@ import {
   FileDown,
   AlertCircle,
   Loader2,
+  X,
   WifiOff,
   RefreshCw,
 } from "lucide-react";
@@ -135,6 +136,10 @@ const Index = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [isEditingData, setIsEditingData] = useState(false);
+  const [editFormData, setEditFormData] = useState({ email: "", telefone_celular: "" });
+  const [isSavingData, setIsSavingData] = useState(false);
 
   const handleCopyPix = (code?: string) => {
     if (!code) {
@@ -161,6 +166,66 @@ const Index = () => {
       console.error("[Index] Erro getLinkBoleto:", err);
     } finally {
       setDownloadingInvoiceId(null);
+    }
+  };
+
+  const openEditData = () => {
+    if (cliente) {
+      setEditFormData({
+        email: cliente.email || "",
+        telefone_celular: cliente.telefone_celular || "",
+      });
+      setIsEditingData(true);
+    }
+  };
+
+  const handleSaveData = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cliente) return;
+    
+    setIsSavingData(true);
+    try {
+      await ixcService.atualizarDadosCliente(cliente.id, editFormData);
+      
+      // Atualiza o estado local e cache
+      const updatedCliente = { ...cliente, ...editFormData };
+      setCliente(updatedCliente);
+      sessionStorage.setItem("ixc_cliente_data", JSON.stringify(updatedCliente));
+      
+      const cached = localCache.getAll();
+      localCache.saveAll({
+        ...cached,
+        cliente: updatedCliente,
+      } as any);
+      
+      alert("Dados atualizados com sucesso!");
+      setIsEditingData(false);
+    } catch (err: any) {
+      alert(`Erro ao atualizar os dados: ${err.message}`);
+    } finally {
+      setIsSavingData(false);
+    }
+  };
+
+  const handleTrustUnlock = async () => {
+    if (!contrato) {
+      alert("Contrato não encontrado.");
+      return;
+    }
+    
+    // Confirmação com o usuário
+    if (!window.confirm("Tem certeza que deseja solicitar o desbloqueio de confiança? Esta ação pode ser feita poucas vezes ao ano.")) {
+      return;
+    }
+
+    setIsUnlocking(true);
+    try {
+      await ixcService.solicitarDesbloqueioConfianca(contrato.id);
+      alert("Desbloqueio de confiança solicitado com sucesso! Em alguns minutos sua conexão será reestabelecida.");
+    } catch (err: any) {
+      alert(`Não foi possível realizar o desbloqueio. Motivo: ${err.message}`);
+    } finally {
+      setIsUnlocking(false);
     }
   };
 
@@ -327,10 +392,16 @@ const Index = () => {
 
           <button
             type="button"
-            className="relative mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-primary-foreground/90 underline-offset-4 transition-smooth hover:bg-primary-foreground/10 hover:underline"
+            onClick={handleTrustUnlock}
+            disabled={isUnlocking}
+            className="relative mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-primary-foreground/90 underline-offset-4 transition-smooth hover:bg-primary-foreground/10 hover:underline disabled:opacity-50"
           >
-            <Unlock className="h-3.5 w-3.5" />
-            Já pagou? Clique aqui para desbloqueio de confiança
+            {isUnlocking ? (
+              <div className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Unlock className="h-3.5 w-3.5" />
+            )}
+            {isUnlocking ? "Solicitando..." : "Já pagou? Clique aqui para desbloqueio de confiança"}
           </button>
         </article>
       </section>
@@ -636,7 +707,9 @@ const Index = () => {
       <div className="pt-2 pb-4">
         <button
           type="button"
-          className="group relative w-full overflow-hidden rounded-2xl bg-gradient-card p-5 text-primary-foreground shadow-card transition-smooth hover:shadow-lg active:scale-[0.98]"
+          onClick={handleTrustUnlock}
+          disabled={isUnlocking}
+          className="group relative w-full overflow-hidden rounded-2xl bg-gradient-card p-5 text-primary-foreground shadow-card transition-smooth hover:shadow-lg active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100"
         >
           {/* Background glow effects */}
           <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary-foreground/10 blur-2xl transition-smooth group-hover:bg-primary-foreground/15" />
@@ -644,12 +717,18 @@ const Index = () => {
 
           <div className="relative flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-foreground/20 backdrop-blur-sm">
-              <Unlock className="h-6 w-6" />
+              {isUnlocking ? (
+                <div className="w-6 h-6 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Unlock className="h-6 w-6" />
+              )}
             </div>
             <div className="text-left">
-              <p className="text-base font-bold">Solicitar Desbloqueio de Confiança</p>
+              <p className="text-base font-bold">
+                {isUnlocking ? "Processando Solicitação..." : "Solicitar Desbloqueio de Confiança"}
+              </p>
               <p className="mt-0.5 text-sm opacity-80">
-                Já efetuou o pagamento? Solicite a liberação imediata.
+                {isUnlocking ? "Aguarde enquanto enviamos seu pedido." : "Já efetuou o pagamento? Solicite a liberação imediata."}
               </p>
             </div>
           </div>
@@ -669,12 +748,13 @@ const Index = () => {
       <div className="grid grid-cols-2 gap-3">
         {[
           { icon: Wifi, label: "Problemas de Conexão" },
-          { icon: Receipt, label: "2ª Via de Boleto" },
+          { icon: Receipt, label: "2ª Via de Boleto", onClick: () => setActiveTab("finance") },
           { icon: Calendar, label: "Agendar Visita" },
-          { icon: CreditCard, label: "Alterar Dados" },
+          { icon: CreditCard, label: "Alterar Dados", onClick: openEditData },
         ].map((item, index) => (
           <button
             key={index}
+            onClick={item.onClick}
             className="bg-card rounded-xl p-4 shadow-soft border border-border flex flex-col items-center gap-2 hover:bg-muted transition-smooth"
           >
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -814,6 +894,67 @@ const Index = () => {
           </>
         )}
       </main>
+
+      {/* Modal Alterar Dados */}
+      {isEditingData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-foreground">Alterar Dados</h3>
+              <button 
+                onClick={() => setIsEditingData(false)}
+                className="p-2 text-muted-foreground hover:bg-muted rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveData} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-muted-foreground">E-mail</label>
+                <input
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Seu melhor e-mail"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-muted-foreground">Telefone (Celular)</label>
+                <input
+                  type="tel"
+                  value={editFormData.telefone_celular}
+                  onChange={(e) => setEditFormData({...editFormData, telefone_celular: e.target.value})}
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              
+              <div className="pt-2 flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditingData(false)}
+                  className="flex-1 rounded-xl h-12"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSavingData}
+                  className="flex-1 rounded-xl h-12 bg-primary text-white font-semibold"
+                >
+                  {isSavingData ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    "Salvar"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-2 shadow-lg">
