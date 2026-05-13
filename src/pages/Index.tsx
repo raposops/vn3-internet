@@ -138,6 +138,8 @@ const Index = () => {
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [isEditingData, setIsEditingData] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({ email: "", telefone_celular: "" });
   const [isSavingData, setIsSavingData] = useState(false);
 
@@ -323,6 +325,18 @@ const Index = () => {
     }
 
     refreshFromApi();
+
+    // 4️⃣ Inicializa Push Notifications
+    setTimeout(() => {
+      const currentCliente = ixcService.getClienteLogado();
+      if (currentCliente) {
+        pushNotificationService.initializeAfterLogin().then((token) => {
+          if (token) {
+            ixcService.salvarPushToken(currentCliente.id, token);
+          }
+        });
+      }
+    }, 2000);
   }, []);
 
   // Fatura em destaque (vencida ou próxima em aberto)
@@ -767,7 +781,7 @@ const Index = () => {
 
       {/* Fale Conosco - Premium Image Card */}
       <a
-        href="tel:08001234567"
+        href="tel:51 99809-3480"
         className="group relative mt-6 block overflow-hidden rounded-3xl shadow-card transition-smooth hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]"
         style={{ minHeight: "180px" }}
       >
@@ -802,7 +816,7 @@ const Index = () => {
               Fale Conosco
             </p>
             <p className="mt-1 text-3xl font-extrabold text-white tracking-tight">
-              0800 123 4567
+              51 99809-3480
             </p>
             <p className="mt-1 text-sm text-white/70">
               Atendimento 24h • Ligação gratuita
@@ -986,7 +1000,75 @@ const Index = () => {
         isOpen={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)}
         onLogout={handleLogout}
+        userName={cliente?.razao?.split(" ")[0]}
+        onProfileClick={() => {
+          setIsDrawerOpen(false);
+          openEditData();
+        }}
+        onContractsClick={() => {
+          setIsDrawerOpen(false);
+          setActiveTab("plans");
+        }}
+        onSettingsClick={() => {
+          setIsDrawerOpen(false);
+          setIsSettingsOpen(true);
+        }}
+        onPrivacyClick={() => {
+          setIsDrawerOpen(false);
+          setIsPrivacyOpen(true);
+        }}
       />
+
+      {/* Modal Configurações */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-foreground">Configurações</h3>
+              <button 
+                onClick={() => setIsSettingsOpen(false)}
+                className="p-2 text-muted-foreground hover:bg-muted rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Em breve você poderá gerenciar as configurações do aplicativo aqui.</p>
+              <Button onClick={() => setIsSettingsOpen(false)} className="w-full rounded-xl h-12 bg-primary text-white font-semibold">
+                Entendi
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Privacidade */}
+      {isPrivacyOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-foreground">Privacidade</h3>
+              <button 
+                onClick={() => setIsPrivacyOpen(false)}
+                className="p-2 text-muted-foreground hover:bg-muted rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Valorizamos sua privacidade. Seus dados são utilizados exclusivamente para o gerenciamento da sua conexão e serviços VN3 Internet.
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Não compartilhamos suas informações com terceiros sem seu consentimento expresso.
+              </p>
+              <Button onClick={() => setIsPrivacyOpen(false)} className="w-full rounded-xl h-12 bg-primary text-white font-semibold">
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

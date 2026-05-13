@@ -693,6 +693,44 @@ const ixcService = {
     }
   },
 
+  /**
+   * Salva o FCM Token (Push) no cadastro do cliente no IXC.
+   * Por padrão, salva no campo 'obs' com uma tag identificadora.
+   */
+  async salvarPushToken(idCliente: string, token: string): Promise<void> {
+    try {
+      // 1. Busca o cliente atual
+      const response = await api.post<IxcListResponse<any>>("/cliente", {
+        qtype: "id",
+        query: idCliente,
+        oper: "=",
+      }, {
+        headers: { ixcsoft: "listar" }
+      });
+      
+      if (response.data.total === 0) return;
+      
+      const cliente = response.data.registros[0];
+      const tag = "[FCM_TOKEN]";
+      
+      // 2. Remove tag antiga se existir e adiciona a nova
+      let obs = cliente.obs || "";
+      if (obs.includes(tag)) {
+        // Remove a linha que contém o token antigo
+        obs = obs.split("\n").filter(line => !line.includes(tag)).join("\n");
+      }
+      
+      cliente.obs = `${obs}\n${tag} ${token}`.trim();
+      
+      // 3. Salva
+      await api.put(`/cliente/${idCliente}`, cliente);
+      console.log("[IXC] Push token salvo com sucesso no campo obs.");
+      
+    } catch (error) {
+      console.error("[IXC] Erro ao salvar push token no IXC:", error);
+    }
+  },
+
   // ─── getProfile ───────────────────────────────────────────
 
   /**

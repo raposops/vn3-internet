@@ -41,7 +41,7 @@ function formatCpfCnpj(value: string): string {
 const pageVariants = {
   initial: { opacity: 0, y: 24 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
-  exit:    { opacity: 0, y: -16, transition: { duration: 0.3, ease: "easeIn" } },
+  exit: { opacity: 0, y: -16, transition: { duration: 0.3, ease: "easeIn" } },
 };
 
 const cardVariants = {
@@ -65,14 +65,14 @@ const fieldVariants = {
 ───────────────────────────────────────── */
 const Login = () => {
   const navigate = useNavigate();
-  const [cpfCnpj, setCpfCnpj]           = useState("");
-  const [senha, setSenha]               = useState("");
+  const [cpfCnpj, setCpfCnpj] = useState("");
+  const [senha, setSenha] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading]       = useState(false);
-  const [isFocusCpf, setIsFocusCpf]     = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFocusCpf, setIsFocusCpf] = useState(false);
   const [isFocusSenha, setIsFocusSenha] = useState(false);
-  const [errorMsg, setErrorMsg]         = useState("");
-  const [shakeKey, setShakeKey]         = useState(0);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [shakeKey, setShakeKey] = useState(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,7 +106,7 @@ const Login = () => {
         pushNotificationService.initializeAfterLogin().then((token) => {
           if (token) {
             console.log("[Login] Push token capturado para cliente", cliente.id);
-            // TODO: Enviar token para o backend vinculado ao cliente.id
+            ixcService.salvarPushToken(cliente.id, token);
           }
         });
       }, 1500);
@@ -400,7 +400,7 @@ const Login = () => {
           {/* WhatsApp Suporte */}
           <a
             id="whatsapp-support"
-            href="https://wa.me/5500000000000?text=Olá!%20Preciso%20de%20ajuda%20para%20acessar%20minha%20conta%20VN3%20Internet."
+            href="https://wa.me/5551998093480?text=Olá!%20Preciso%20de%20ajuda%20para%20acessar%20minha%20conta%20VN3%20Internet."
             target="_blank"
             rel="noopener noreferrer"
             className="group flex w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-[hsl(220,13%,88%)] bg-white px-5 py-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[hsl(142,60%,65%)] hover:shadow-md active:scale-[0.98]"

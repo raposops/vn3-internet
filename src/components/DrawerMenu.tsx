@@ -6,9 +6,14 @@ interface DrawerMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onLogout: () => void;
+  onProfileClick: () => void;
+  onContractsClick: () => void;
+  onSettingsClick: () => void;
+  onPrivacyClick: () => void;
+  userName?: string;
 }
 
-export function DrawerMenu({ isOpen, onClose, onLogout }: DrawerMenuProps) {
+export function DrawerMenu({ isOpen, onClose, onLogout, onProfileClick, onContractsClick, onSettingsClick, onPrivacyClick, userName }: DrawerMenuProps) {
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -51,7 +56,7 @@ export function DrawerMenu({ isOpen, onClose, onLogout }: DrawerMenuProps) {
                   <User className="w-7 h-7 text-white" />
                 </div>
                 <div className="flex flex-col">
-                  <h2 className="text-xl font-bold text-white tracking-tight">Paulo</h2>
+                  <h2 className="text-xl font-bold text-white tracking-tight">{userName || "Cliente"}</h2>
                   <p className="text-sm font-medium text-cyan-400">Cliente VN3</p>
                 </div>
               </div>
@@ -60,13 +65,14 @@ export function DrawerMenu({ isOpen, onClose, onLogout }: DrawerMenuProps) {
             {/* Menu Links */}
             <nav className="flex-1 py-4 flex flex-col gap-1.5 px-4 overflow-y-auto">
               {[
-                { icon: UserCircle, label: "Meu Perfil" },
-                { icon: FileText, label: "Meus Contratos" },
-                { icon: Settings, label: "Configurações" },
-                { icon: Shield, label: "Privacidade" },
+                { icon: UserCircle, label: "Meu Perfil", onClick: onProfileClick },
+                { icon: FileText, label: "Meus Contratos", onClick: onContractsClick },
+                { icon: Settings, label: "Configurações", onClick: onSettingsClick },
+                { icon: Shield, label: "Privacidade", onClick: onPrivacyClick },
               ].map((item, i) => (
                 <button
                   key={i}
+                  onClick={item.onClick}
                   className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-smooth text-foreground active:scale-[0.98]"
                 >
                   <item.icon className="w-5 h-5 text-muted-foreground" />

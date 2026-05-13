@@ -47,7 +47,7 @@ export function ConsumptionCard({ data = mockData }: ConsumptionCardProps) {
             <Tooltip 
               cursor={{ fill: 'rgba(15, 23, 42, 0.05)' }} 
               contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)' }}
-              formatter={(value: number) => [`${value} GB`, 'Consumo']}
+              formatter={(value: number) => [`${value.toFixed(2)} GB`, 'Consumo']}
               labelStyle={{ color: '#0f172a', fontWeight: 'bold', marginBottom: '4px' }}
             />
             <Bar dataKey="value" radius={[6, 6, 6, 6]} barSize={28}>
@@ -57,7 +57,7 @@ export function ConsumptionCard({ data = mockData }: ConsumptionCardProps) {
               <LabelList 
                 dataKey="value" 
                 position="top" 
-                formatter={(val: number) => `${val}GB`} 
+                formatter={(val: number) => `${val.toFixed(1)}GB`} 
                 style={{ fontSize: '11px', fill: '#0f172a', fontWeight: 'bold' }}
                 offset={8}
               />
@@ -68,7 +68,7 @@ export function ConsumptionCard({ data = mockData }: ConsumptionCardProps) {
 
       <div className="pt-4 border-t border-border mt-2">
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Consumo total nesta semana: <strong className="text-[#0f172a] font-bold">{totalConsumption} GB</strong>. <br />
+          Consumo total nesta semana: <strong className="text-[#0f172a] font-bold">{totalConsumption.toFixed(2)} GB</strong>. <br />
           Seu dia de maior consumo foi <strong className="text-[#0f172a] font-bold">{maxDay.fullDay}</strong>.
         </p>
       </div>
