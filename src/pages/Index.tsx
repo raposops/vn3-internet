@@ -632,7 +632,7 @@ const Index = () => {
 
                   {/* Bottom Section: Info + Button */}
                   <div className="mt-auto space-y-4">
-                    {/* Speed */}
+                    {/* Speed + Combo */}
                     <div>
                       <p className="text-sm font-medium text-cyan-300 tracking-wide uppercase">
                         Velocidade
@@ -640,6 +640,9 @@ const Index = () => {
                       <h3 className="text-3xl font-extrabold text-white leading-tight tracking-tight">
                         {plan.speed}
                       </h3>
+                      <p className="mt-1 text-sm font-semibold text-white/90">
+                        {plan.combo}
+                      </p>
                     </div>
 
                     {/* Price */}
@@ -650,31 +653,18 @@ const Index = () => {
                       <span className="text-sm text-white/70">/mês</span>
                     </div>
 
-                    {/* Consumption progress */}
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between text-xs">
-                        <span className="font-medium text-white/70">
-                          Consumo do mês
-                        </span>
-                        <span className="font-semibold text-cyan-300">
-                          {plan.usage}%
-                        </span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-white/15 backdrop-blur-sm">
-                        <div
-                          className="h-full rounded-full transition-all duration-700 ease-out"
-                          style={{
-                            width: `${plan.usage}%`,
-                            background:
-                              "linear-gradient(90deg, hsl(195, 85%, 55%), hsl(195, 80%, 65%))",
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* CTA Button */}
-                    <Button className="h-11 w-full rounded-2xl bg-accent font-semibold text-white hover:bg-accent/90 shadow-lg">
-                      Mudar para este plano
+                    {/* CTA Button → WhatsApp */}
+                    <Button
+                      asChild
+                      className="h-11 w-full rounded-2xl bg-accent font-semibold text-white hover:bg-accent/90 shadow-lg"
+                    >
+                      <a
+                        href={buildWhatsAppLink(plan.name)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Contratar Agora
+                      </a>
                     </Button>
                   </div>
                 </div>
