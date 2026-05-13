@@ -33,6 +33,10 @@ import {
   X,
   WifiOff,
   RefreshCw,
+  Film,
+  Clapperboard,
+  Tv,
+  Popcorn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -51,33 +55,57 @@ type TabKey = "home" | "plans" | "finance" | "support";
 
 const plans = [
   {
-    name: "Plano Fibra 300 Mega",
-    speed: "300 Mega",
-    price: "R$ 99,90",
+    name: "500 Mega + UP CINEMA",
+    speed: "500 Mega",
+    combo: "+ UP CINEMA",
+    price: "R$ 112,00",
     tag: "Sem Fidelidade",
-    icon: Wifi,
-    usage: 35,
+    icon: Film,
     bgImage: plan300Bg,
   },
   {
-    name: "Plano Fibra 600 Mega",
-    speed: "600 Mega",
-    price: "R$ 129,90",
+    name: "500 Mega + HUB CINEMA PRO",
+    speed: "500 Mega",
+    combo: "+ HUB CINEMA PRO",
+    price: "R$ 122,00",
     tag: "Sem Fidelidade",
-    icon: Zap,
-    usage: 62,
+    icon: Clapperboard,
     bgImage: plan500Bg,
   },
   {
-    name: "Plano Fibra 1 Giga",
-    speed: "1 Giga",
-    price: "R$ 179,90",
-    tag: "Sem Fidelidade",
-    icon: Zap,
-    usage: 78,
+    name: "750 Mega + HUB CINEMA PRO",
+    speed: "750 Mega",
+    combo: "+ HUB CINEMA PRO",
+    price: "R$ 132,00",
+    tag: "Mais Vendido",
+    icon: Clapperboard,
     bgImage: plan1gigaBg,
   },
+  {
+    name: "750 Mega + POWER TOP",
+    speed: "750 Mega",
+    combo: "+ POWER TOP",
+    price: "R$ 142,00",
+    tag: "Sem Fidelidade",
+    icon: Tv,
+    bgImage: plan300Bg,
+  },
+  {
+    name: "900 Mega + POWER TOP",
+    speed: "900 Mega",
+    combo: "+ POWER TOP",
+    price: "R$ 152,00",
+    tag: "Premium",
+    icon: Popcorn,
+    bgImage: plan500Bg,
+  },
 ];
+
+const WHATSAPP_NUMBER = "5551998093480";
+const buildWhatsAppLink = (planName: string) =>
+  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+    `Olá! Vi o plano de ${planName} no app e gostaria de fazer o upgrade.`
+  )}`;
 
 /* ─── Helpers para transformar dados IXC → UI ───────────── */
 const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -604,7 +632,7 @@ const Index = () => {
 
                   {/* Bottom Section: Info + Button */}
                   <div className="mt-auto space-y-4">
-                    {/* Speed */}
+                    {/* Speed + Combo */}
                     <div>
                       <p className="text-sm font-medium text-cyan-300 tracking-wide uppercase">
                         Velocidade
@@ -612,6 +640,9 @@ const Index = () => {
                       <h3 className="text-3xl font-extrabold text-white leading-tight tracking-tight">
                         {plan.speed}
                       </h3>
+                      <p className="mt-1 text-sm font-semibold text-white/90">
+                        {plan.combo}
+                      </p>
                     </div>
 
                     {/* Price */}
@@ -622,31 +653,18 @@ const Index = () => {
                       <span className="text-sm text-white/70">/mês</span>
                     </div>
 
-                    {/* Consumption progress */}
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between text-xs">
-                        <span className="font-medium text-white/70">
-                          Consumo do mês
-                        </span>
-                        <span className="font-semibold text-cyan-300">
-                          {plan.usage}%
-                        </span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-white/15 backdrop-blur-sm">
-                        <div
-                          className="h-full rounded-full transition-all duration-700 ease-out"
-                          style={{
-                            width: `${plan.usage}%`,
-                            background:
-                              "linear-gradient(90deg, hsl(195, 85%, 55%), hsl(195, 80%, 65%))",
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* CTA Button */}
-                    <Button className="h-11 w-full rounded-2xl bg-accent font-semibold text-white hover:bg-accent/90 shadow-lg">
-                      Mudar para este plano
+                    {/* CTA Button → WhatsApp */}
+                    <Button
+                      asChild
+                      className="h-11 w-full rounded-2xl bg-accent font-semibold text-white hover:bg-accent/90 shadow-lg"
+                    >
+                      <a
+                        href={buildWhatsAppLink(plan.name)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Contratar Agora
+                      </a>
                     </Button>
                   </div>
                 </div>
