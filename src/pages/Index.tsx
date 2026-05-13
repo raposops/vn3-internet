@@ -51,33 +51,57 @@ type TabKey = "home" | "plans" | "finance" | "support";
 
 const plans = [
   {
-    name: "Plano Fibra 300 Mega",
-    speed: "300 Mega",
-    price: "R$ 99,90",
+    name: "500 Mega + UP CINEMA",
+    speed: "500 Mega",
+    combo: "+ UP CINEMA",
+    price: "R$ 112,00",
     tag: "Sem Fidelidade",
-    icon: Wifi,
-    usage: 35,
+    icon: Film,
     bgImage: plan300Bg,
   },
   {
-    name: "Plano Fibra 600 Mega",
-    speed: "600 Mega",
-    price: "R$ 129,90",
+    name: "500 Mega + HUB CINEMA PRO",
+    speed: "500 Mega",
+    combo: "+ HUB CINEMA PRO",
+    price: "R$ 122,00",
     tag: "Sem Fidelidade",
-    icon: Zap,
-    usage: 62,
+    icon: Clapperboard,
     bgImage: plan500Bg,
   },
   {
-    name: "Plano Fibra 1 Giga",
-    speed: "1 Giga",
-    price: "R$ 179,90",
-    tag: "Sem Fidelidade",
-    icon: Zap,
-    usage: 78,
+    name: "750 Mega + HUB CINEMA PRO",
+    speed: "750 Mega",
+    combo: "+ HUB CINEMA PRO",
+    price: "R$ 132,00",
+    tag: "Mais Vendido",
+    icon: Clapperboard,
     bgImage: plan1gigaBg,
   },
+  {
+    name: "750 Mega + POWER TOP",
+    speed: "750 Mega",
+    combo: "+ POWER TOP",
+    price: "R$ 142,00",
+    tag: "Sem Fidelidade",
+    icon: Tv,
+    bgImage: plan300Bg,
+  },
+  {
+    name: "900 Mega + POWER TOP",
+    speed: "900 Mega",
+    combo: "+ POWER TOP",
+    price: "R$ 152,00",
+    tag: "Premium",
+    icon: Popcorn,
+    bgImage: plan500Bg,
+  },
 ];
+
+const WHATSAPP_NUMBER = "5551998093480";
+const buildWhatsAppLink = (planName: string) =>
+  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+    `Olá! Vi o plano de ${planName} no app e gostaria de fazer o upgrade.`
+  )}`;
 
 /* ─── Helpers para transformar dados IXC → UI ───────────── */
 const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
