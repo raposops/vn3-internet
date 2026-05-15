@@ -34,7 +34,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     optimizeDeps: {
-      exclude: ['qrcode.react'],
+      exclude: ['qrcode.react', '@capacitor/core', '@capacitor/preferences', '@capacitor/clipboard'],
     },
     plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
     resolve: {

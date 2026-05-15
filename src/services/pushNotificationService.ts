@@ -91,7 +91,6 @@ const pushNotificationService = {
 
     try {
       const permission = await Notification.requestPermission();
-      console.log(`[Push] Permissão: ${permission}`);
       return permission;
     } catch (error) {
       console.error("[Push] Erro ao solicitar permissão:", error);
@@ -157,16 +156,6 @@ const pushNotificationService = {
          * cliente (IXC Soft ou Supabase) após o login.
          * ══════════════════════════════════════════════════════════
          */
-        console.log(
-          "%c[Push] 📱 FCM Token capturado com sucesso!",
-          "color: #22D1EE; font-weight: bold; font-size: 13px;"
-        );
-        console.log(
-          "%c[Push] Este é o 'endereço' único deste dispositivo para receber notificações push:",
-          "color: #8899aa;"
-        );
-        console.log("[Push] Token:", token);
-
         // Armazena localmente para referência
         localStorage.setItem("vn3_push_token", token);
 
@@ -223,7 +212,6 @@ const pushNotificationService = {
     if (!messaging) return;
 
     onMessage(messaging, (payload: MessagePayload) => {
-      console.log("[Push] Mensagem recebida em foreground:", payload);
 
       const notification: PushNotificationData = {
         title: payload.notification?.title || payload.data?.title || "VN3 Internet",
@@ -245,7 +233,6 @@ const pushNotificationService = {
     });
 
     foregroundListenerActive = true;
-    console.log("[Push] Listener de foreground ativado.");
   },
 
   // ─── Registro de Callbacks ─────────────────────────────────
@@ -277,7 +264,6 @@ const pushNotificationService = {
    */
   async initializeAfterLogin(): Promise<string | null> {
     if (!this.isSupported()) {
-      console.log("[Push] Push notifications não suportadas — ignorando inicialização.");
       return null;
     }
 
@@ -289,11 +275,9 @@ const pushNotificationService = {
       localStorage.setItem("vn3_push_permission_asked", "true");
 
       if (permission !== "granted") {
-        console.log("[Push] Usuário não concedeu permissão.");
         return null;
       }
     } else if (!this.hasPermission()) {
-      console.log("[Push] Permissão previamente negada pelo usuário.");
       return null;
     }
 

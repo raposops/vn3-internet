@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DrawerMenu } from "@/components/DrawerMenu";
 import { ConsumptionCard } from "@/components/ConsumptionCard";
-import logoVn3 from "@/assets/logo-vn3.png";
+import logoVn3 from "@/assets/logo-vn3-dark-text.png";
 import plan300Bg from "@/assets/plan-300-gamer.png";
 import plan500Bg from "@/assets/plan-500-family.png";
 import plan1gigaBg from "@/assets/plan-1giga-conference.png";
@@ -60,7 +60,7 @@ const plans = [
     speed: "500 Mega",
     combo: "+ UP CINEMA",
     price: "R$ 112,00",
-    tag: "Sem Fidelidade",
+    tag: "",
     icon: Film,
     bgImage: plan300Bg,
   },
@@ -69,7 +69,7 @@ const plans = [
     speed: "500 Mega",
     combo: "+ HUB CINEMA PRO",
     price: "R$ 122,00",
-    tag: "Sem Fidelidade",
+    tag: "",
     icon: Clapperboard,
     bgImage: plan500Bg,
   },
@@ -87,7 +87,7 @@ const plans = [
     speed: "750 Mega",
     combo: "+ POWER TOP",
     price: "R$ 142,00",
-    tag: "Sem Fidelidade",
+    tag: "",
     icon: Tv,
     bgImage: plan300Bg,
   },
@@ -626,9 +626,11 @@ const Index = () => {
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-md border border-white/20">
                       <Icon className="h-5 w-5 text-white" />
                     </div>
-                    <span className="rounded-full bg-white/15 backdrop-blur-md px-3 py-1 text-xs font-semibold text-white border border-white/20">
-                      {plan.tag}
-                    </span>
+                    {plan.tag && (
+                      <span className="rounded-full bg-white/15 backdrop-blur-md px-3 py-1 text-xs font-semibold text-white border border-white/20">
+                        {plan.tag}
+                      </span>
+                    )}
                   </div>
 
                   {/* Bottom Section: Info + Button */}
@@ -985,7 +987,9 @@ const Index = () => {
 
       {/* Fale Conosco - Premium Image Card */}
       <a
-        href="tel:51 99809-3480"
+        href="https://wa.me/5551998093480"
+        target="_blank"
+        rel="noopener noreferrer"
         className="group relative mt-6 block overflow-hidden rounded-3xl shadow-card transition-smooth hover:-translate-y-1 hover:shadow-lg active:scale-[0.98]"
         style={{ minHeight: "180px" }}
       >
@@ -1026,7 +1030,7 @@ const Index = () => {
               51 99809-3480
             </p>
             <p className="mt-1 text-sm text-white/70">
-              Atendimento 24h • Ligação gratuita
+              Atendimento 24h • Via WhatsApp
             </p>
           </div>
         </div>
@@ -1037,7 +1041,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="bg-card px-4 py-4 flex items-center justify-between shadow-soft sticky top-0 z-10">
+      <header className="bg-card px-4 py-4 flex items-center justify-between shadow-soft sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
             <User className="w-5 h-5 text-primary" />
@@ -1178,7 +1182,7 @@ const Index = () => {
       )}
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-2 shadow-lg">
+      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-2 shadow-lg z-40">
         <div className="flex items-center justify-around max-w-md mx-auto">
           {[
             { key: "home", label: "Início", icon: Home },

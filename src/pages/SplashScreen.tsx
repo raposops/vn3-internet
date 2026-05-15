@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import logoVn3Internet from "@/assets/logo-vn3-internet.png";
+import logoVn3Internet from "@/assets/logo-vn3-dark-text.png";
 import splashBg from "@/assets/splash-bg.png";
 
 interface SplashScreenProps {
@@ -56,9 +56,9 @@ const SplashScreen = ({ onFinish }: SplashScreenProps) => {
             {/* Glow atrás do logo */}
             <motion.div
               initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
+              animate={{ opacity: 0.85, scale: 1.1 }}
               transition={{ duration: 1.2, ease: "easeOut" }}
-              className="absolute h-48 w-48 rounded-full bg-[hsl(195,85%,55%)] blur-[80px] opacity-30"
+              className="absolute h-80 w-80 rounded-full bg-[hsl(195,100%,92%)] blur-[100px]"
             />
 
             {/* Logo com Scale Up */}
@@ -75,15 +75,7 @@ const SplashScreen = ({ onFinish }: SplashScreenProps) => {
               className="relative z-10 h-36 w-auto drop-shadow-2xl"
             />
 
-            {/* Subtítulo */}
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.7 }}
-              className="relative z-10 mt-4 text-sm font-medium tracking-wider text-white/60"
-            >
-              Internet Ultraveloz
-            </motion.p>
+
           </div>
 
           {/* ── Progress bar — fixo no rodapé ── */}

@@ -732,7 +732,7 @@ const ixcService = {
       
       // 3. Salva
       await api.put(`/cliente/${idCliente}`, cliente);
-      console.log("[IXC] Push token salvo com sucesso no campo obs.");
+      // console.log("[IXC] Push token salvo com sucesso no campo obs.");
       
     } catch (error) {
       console.error("[IXC] Erro ao salvar push token no IXC:", error);

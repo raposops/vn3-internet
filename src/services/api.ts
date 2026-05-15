@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { Capacitor } from "@capacitor/core";
 import { API_URL, DEFAULT_HEADERS, API_TIMEOUT } from "./ixcConfig";
 
 /* ═══════════════════════════════════════════════════════════════
@@ -19,6 +20,9 @@ const api = axios.create({
   baseURL: API_URL,
   headers: { ...DEFAULT_HEADERS },
   timeout: API_TIMEOUT,
+  // No Android/iOS, o CapacitorHttp (quando habilitado no config) intercepta XHR.
+  // Desativamos withCredentials para evitar problemas de CORS em certas configurações.
+  withCredentials: false
 });
 
 // ─── Request Interceptor ─────────────────────────────────────
@@ -29,9 +33,24 @@ api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const { storageService } = await import("./storageService");
     const clienteToken = await storageService.get<string>("ixc_cliente_token");
-    if (clienteToken && config.headers) {
+    
+    // Injeta a Master Key do IXC se estivermos indo direto para o IXC (Produção/APK)
+    const ixcMasterToken = import.meta.env.VITE_IXC_API_TOKEN;
+    const isDirectToIxc = config.baseURL?.includes("ixcsoft.com") || API_URL.includes("ixcsoft.com");
+
+    if (isDirectToIxc && ixcMasterToken && config.headers) {
+      // Basic Auth: base64(token)
+      const encodedToken = btoa(ixcMasterToken);
+      config.headers["Authorization"] = `Basic ${encodedToken}`;
+      config.headers["ixcsoft"] = "listar";
+      
+      if (Capacitor.isNativePlatform()) {
+        console.log("[API] Usando Capacitor HTTP Nativo para requisição direta ao IXC.");
+      }
+    } else if (clienteToken && config.headers) {
       config.headers["Authorization"] = `Bearer ${clienteToken}`;
     }
+    
     return config;
   },
   (error: AxiosError) => Promise.reject(error)

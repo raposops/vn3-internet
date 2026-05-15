@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import logoVn3Internet from "@/assets/logo-vn3-internet.png";
+import logoVn3Internet from "@/assets/logo-vn3-white.png";
 import ixcService from "@/services/ixcService";
 import localCache from "@/services/localCache";
 import pushNotificationService from "@/services/pushNotificationService";
@@ -105,7 +105,7 @@ const Login = () => {
       setTimeout(() => {
         pushNotificationService.initializeAfterLogin().then((token) => {
           if (token) {
-            console.log("[Login] Push token capturado para cliente", cliente.id);
+            // console.log("[Login] Push token capturado para cliente", cliente.id);
             ixcService.salvarPushToken(cliente.id, token);
           }
         });
