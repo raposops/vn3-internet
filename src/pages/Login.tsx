@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import logoVn3Internet from "@/assets/logo-vn3-white.png";
+import logoVn3Internet from "@/assets/logo-vn3-dark-text.png";
 import ixcService from "@/services/ixcService";
 import localCache from "@/services/localCache";
 import pushNotificationService from "@/services/pushNotificationService";
