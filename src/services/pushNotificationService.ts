@@ -1,55 +1,29 @@
 /* ═══════════════════════════════════════════════════════════════
-   Push Notification Service — Firebase Cloud Messaging (FCM)
-
+   Push Notification Service — Hybrid (Native & Web)
+   
    Responsabilidades:
-   1. Solicitar permissão de notificações ao usuário
-   2. Capturar o Push Token (Registration Token) do dispositivo
-   3. Ouvir mensagens push em foreground (app aberto)
-   4. Gerenciar callbacks para exibição de notificações na UI
-
-   ───────────────────────────────────────────────────────────────
-   NOTA TÉCNICA — Integração com Backend (IXC Soft / Supabase):
-
-   O Push Token capturado por `getDeviceToken()` é um identificador
-   único do dispositivo/browser do cliente. Para permitir o envio
-   de notificações segmentadas (ex: "Fatura disponível", "Manutenção
-   programada"), este token DEVE ser enviado e armazenado no cadastro
-   do cliente:
-
-   Opção 1 — IXC Soft:
-     Salvar no campo `obs` ou em um campo customizado da tabela
-     `cliente` via API REST: PUT /cliente/{id} { push_token: "..." }
-
-   Opção 2 — Supabase:
-     Criar uma tabela `push_tokens` com colunas:
-       id, cliente_id, token, platform, created_at, updated_at
-     E fazer upsert ao capturar/renovar o token.
-
-   Isso permite que o sistema administrativo envie pushes direcionados
-   por cliente, plano, cidade, status de fatura, etc.
+   1. Detectar plataforma (Native App vs Web/PWA)
+   2. Solicitar permissão de forma apropriada para cada plataforma
+   3. Capturar o Push Token (FCM para Web, APNS/FCM para Native)
+   4. Gerenciar exibição de banners em foreground
    ═══════════════════════════════════════════════════════════════ */
 
 import { getToken, onMessage, type MessagePayload } from "firebase/messaging";
+import { PushNotifications, type PushNotificationSchema, type Token } from "@capacitor/push-notifications";
+import { Capacitor } from "@capacitor/core";
 import { getFirebaseMessaging, VAPID_KEY, isFirebaseConfigured } from "./firebaseConfig";
 
 // ─── Tipos ────────────────────────────────────────────────────
 
 export interface PushNotificationData {
-  /** Título da notificação */
   title: string;
-  /** Corpo / descrição da notificação */
   body: string;
-  /** Imagem opcional (URL) */
   image?: string;
-  /** Ação ao clicar — identifica para onde navegar */
   action?: string;
-  /** Dados customizados (metadata) */
-  data?: Record<string, string>;
-  /** Timestamp de quando a notificação foi recebida */
+  data?: Record<string, any>;
   receivedAt: Date;
 }
 
-/** Callback chamado quando uma notificação chega em foreground */
 export type OnNotificationCallback = (notification: PushNotificationData) => void;
 
 // ─── Estado interno ───────────────────────────────────────────
@@ -60,12 +34,10 @@ const notificationCallbacks: OnNotificationCallback[] = [];
 // ─── Service ──────────────────────────────────────────────────
 
 const pushNotificationService = {
-  // ─── Verificar suporte ──────────────────────────────────────
-
-  /**
-   * Verifica se o ambiente atual suporta Push Notifications.
-   */
+  
   isSupported(): boolean {
+    if (Capacitor.isNativePlatform()) return true;
+    
     return (
       typeof window !== "undefined" &&
       "serviceWorker" in navigator &&
@@ -75,61 +47,63 @@ const pushNotificationService = {
     );
   },
 
-  // ─── Solicitar Permissão ────────────────────────────────────
-
   /**
-   * Solicita permissão de notificações ao usuário.
-   * Deve ser chamado após o login (primeira vez).
-   *
-   * @returns "granted" | "denied" | "default" | null (se não suportado)
+   * Solicita permissão de notificações.
    */
-  async requestPermission(): Promise<NotificationPermission | null> {
-    if (!this.isSupported()) {
-      console.warn("[Push] Push Notifications não suportadas neste ambiente.");
-      return null;
+  async requestPermission(): Promise<"granted" | "denied" | "default" | null> {
+    if (Capacitor.isNativePlatform()) {
+      const perm = await PushNotifications.requestPermissions();
+      return perm.receive === 'granted' ? 'granted' : 'denied';
     }
 
+    if (!this.isSupported()) return null;
+
     try {
-      const permission = await Notification.requestPermission();
-      return permission;
+      return await Notification.requestPermission();
     } catch (error) {
-      console.error("[Push] Erro ao solicitar permissão:", error);
+      console.error("[Push] Erro ao solicitar permissão Web:", error);
       return null;
     }
   },
 
-  /**
-   * Verifica se o usuário já concedeu permissão.
-   */
   hasPermission(): boolean {
+    if (Capacitor.isNativePlatform()) {
+      // No Capacitor, verificamos via requestPermissions ou simplesmente tentamos registrar
+      return true; // Simplificação: o fluxo de registro cuida disso
+    }
     return typeof Notification !== "undefined" && Notification.permission === "granted";
   },
 
-  // ─── Token do Dispositivo ──────────────────────────────────
-
   /**
-   * Captura o Push Token (Registration Token) único do dispositivo.
-   *
-   * ⚠️  IMPORTANTE:
-   * Este token deve ser enviado para o cadastro do cliente no
-   * IXC Soft (campo obs ou customizado) ou para uma tabela
-   * `push_tokens` no Supabase, vinculado ao id do cliente.
-   * Isso permite envios segmentados de notificações no futuro
-   * (ex: fatura vencida, manutenção programada, promoções).
-   *
-   * O token pode mudar periodicamente — sempre que capturar
-   * um novo token, atualize o registro no backend.
-   *
-   * @returns O token FCM ou null se não foi possível obter.
+   * Captura o Push Token único do dispositivo.
    */
   async getDeviceToken(): Promise<string | null> {
     if (!this.isSupported()) return null;
 
+    // ─── Fluxo NATIVO (Android/iOS) ──────────────────────────
+    if (Capacitor.isNativePlatform()) {
+      return new Promise(async (resolve) => {
+        // Listener para capturar o token quando o registro for concluído
+        await PushNotifications.addListener('registration', (token: Token) => {
+          localStorage.setItem("vn3_push_token", token.value);
+          resolve(token.value);
+        });
+
+        await PushNotifications.addListener('registrationError', (err: any) => {
+          console.error('[Push] Erro no registro nativo:', err);
+          resolve(null);
+        });
+
+        // Inicia o processo de registro no FCM/APNS
+        await PushNotifications.register();
+      });
+    }
+
+    // ─── Fluxo WEB (PWA/Browser) ─────────────────────────────
     const messaging = getFirebaseMessaging();
     if (!messaging) return null;
 
     try {
-      // Registra o Service Worker do Firebase para push em background
       const swRegistration = await navigator.serviceWorker.register(
         "/firebase-messaging-sw.js",
         { scope: "/" }
@@ -141,161 +115,113 @@ const pushNotificationService = {
       });
 
       if (token) {
-        /*
-         * ══════════════════════════════════════════════════════════
-         * 📱 FCM TOKEN — O "endereço" do celular/browser do cliente
-         *
-         * Este token é o identificador único do dispositivo. Funciona
-         * como um "endereço de entrega" — é para ele que o Firebase
-         * enviará as notificações push. Cada dispositivo/browser
-         * gera um token diferente.
-         *
-         * Para enviar uma notificação a um cliente específico, o
-         * backend precisa saber o token do dispositivo dele.
-         * Por isso, este token deve ser salvo no cadastro do
-         * cliente (IXC Soft ou Supabase) após o login.
-         * ══════════════════════════════════════════════════════════
-         */
-        // Armazena localmente para referência
         localStorage.setItem("vn3_push_token", token);
-
-        /*
-         * ═══════════════════════════════════════════════════════
-         * TODO: Enviar este token para o backend (IXC ou Supabase)
-         * vinculado ao id_cliente logado. Exemplo:
-         *
-         *   await api.put(`/cliente/${clienteId}`, {
-         *     push_token: token,
-         *     push_platform: 'web',
-         *   });
-         *
-         * Ou via Supabase:
-         *   await supabase.from('push_tokens').upsert({
-         *     cliente_id: clienteId,
-         *     token: token,
-         *     platform: 'web',
-         *     updated_at: new Date().toISOString(),
-         *   });
-         * ═══════════════════════════════════════════════════════
-         */
-
         return token;
       }
-
-      console.warn("[Push] Não foi possível obter o token FCM.");
       return null;
     } catch (error) {
-      console.error("[Push] Erro ao obter Device Token:", error);
+      console.error("[Push] Erro ao obter Device Token Web:", error);
       return null;
     }
   },
 
-  /**
-   * Retorna o último token salvo localmente (se existir).
-   */
   getSavedToken(): string | null {
     return localStorage.getItem("vn3_push_token");
   },
 
-  // ─── Listener de Foreground ────────────────────────────────
-
   /**
-   * Inicia o listener para mensagens push recebidas com o app aberto.
-   * Transforma o payload do FCM em `PushNotificationData` e chama
-   * todos os callbacks registrados.
+   * Ativa os listeners para quando o app está aberto.
    */
-  startForegroundListener(): void {
+  async startForegroundListener(): Promise<void> {
     if (foregroundListenerActive) return;
     if (!this.isSupported()) return;
 
-    const messaging = getFirebaseMessaging();
-    if (!messaging) return;
-
-    onMessage(messaging, (payload: MessagePayload) => {
-
-      const notification: PushNotificationData = {
-        title: payload.notification?.title || payload.data?.title || "VN3 Internet",
-        body: payload.notification?.body || payload.data?.body || "",
-        image: payload.notification?.image || payload.data?.image,
-        action: payload.data?.action || payload.data?.click_action,
-        data: payload.data as Record<string, string> | undefined,
-        receivedAt: new Date(),
-      };
-
-      // Notifica todos os callbacks registrados
-      notificationCallbacks.forEach((cb) => {
-        try {
-          cb(notification);
-        } catch (err) {
-          console.error("[Push] Erro no callback de notificação:", err);
+    // ─── Listener NATIVO ──────────────────────────────────────
+    if (Capacitor.isNativePlatform()) {
+      await PushNotifications.addListener(
+        'pushNotificationReceived',
+        (notification: PushNotificationSchema) => {
+          const data: PushNotificationData = {
+            title: notification.title || "VN3 Internet",
+            body: notification.body || "",
+            image: notification.data?.image,
+            action: notification.data?.action || notification.data?.click_action,
+            data: notification.data,
+            receivedAt: new Date(),
+          };
+          this.triggerCallbacks(data);
         }
-      });
-    });
+      );
+      
+      // Listener de clique (quando app está aberto e clica na notificação do sistema)
+      await PushNotifications.addListener(
+        'pushNotificationActionPerformed',
+        (notification) => {
+          const action = notification.notification.data?.action;
+          if (action) {
+             // Você pode disparar uma navegação global aqui se desejar
+             window.dispatchEvent(new CustomEvent('push_action', { detail: action }));
+          }
+        }
+      );
+    } 
+    // ─── Listener WEB ─────────────────────────────────────────
+    else {
+      const messaging = getFirebaseMessaging();
+      if (messaging) {
+        onMessage(messaging, (payload: MessagePayload) => {
+          const data: PushNotificationData = {
+            title: payload.notification?.title || payload.data?.title || "VN3 Internet",
+            body: payload.notification?.body || payload.data?.body || "",
+            image: payload.notification?.image || payload.data?.image,
+            action: payload.data?.action || payload.data?.click_action,
+            data: payload.data as Record<string, any>,
+            receivedAt: new Date(),
+          };
+          this.triggerCallbacks(data);
+        });
+      }
+    }
 
     foregroundListenerActive = true;
   },
 
-  // ─── Registro de Callbacks ─────────────────────────────────
+  triggerCallbacks(notification: PushNotificationData): void {
+    notificationCallbacks.forEach((cb) => {
+      try {
+        cb(notification);
+      } catch (err) {
+        console.error("[Push] Erro no callback:", err);
+      }
+    });
+  },
 
-  /**
-   * Registra um callback para receber notificações em foreground.
-   * Retorna uma função para cancelar o registro.
-   */
   onNotification(callback: OnNotificationCallback): () => void {
     notificationCallbacks.push(callback);
-
     return () => {
       const index = notificationCallbacks.indexOf(callback);
       if (index > -1) notificationCallbacks.splice(index, 1);
     };
   },
 
-  // ─── Fluxo completo pós-login ──────────────────────────────
-
-  /**
-   * Fluxo completo de inicialização das push notifications.
-   * Deve ser chamado após o login bem-sucedido.
-   *
-   * 1. Solicita permissão (se ainda não concedida)
-   * 2. Captura o Device Token
-   * 3. Ativa o listener de foreground
-   *
-   * @returns O Device Token ou null
-   */
   async initializeAfterLogin(): Promise<string | null> {
-    if (!this.isSupported()) {
-      return null;
-    }
+    if (!this.isSupported()) return null;
 
-    // Verifica se já solicitou permissão antes
-    const alreadyAsked = localStorage.getItem("vn3_push_permission_asked");
+    const permission = await this.requestPermission();
+    if (permission !== "granted") return null;
 
-    if (!alreadyAsked) {
-      const permission = await this.requestPermission();
-      localStorage.setItem("vn3_push_permission_asked", "true");
-
-      if (permission !== "granted") {
-        return null;
-      }
-    } else if (!this.hasPermission()) {
-      return null;
-    }
-
-    // Captura o token
     const token = await this.getDeviceToken();
-
-    // Ativa listener de foreground
-    this.startForegroundListener();
+    await this.startForegroundListener();
 
     return token;
   },
 
-  /**
-   * Limpa os dados de push do usuário ao fazer logout.
-   */
   clearOnLogout(): void {
     localStorage.removeItem("vn3_push_token");
-    // Não remove "vn3_push_permission_asked" — a permissão do browser persiste
+    if (Capacitor.isNativePlatform()) {
+      PushNotifications.removeAllListeners();
+      foregroundListenerActive = false;
+    }
   },
 };
 

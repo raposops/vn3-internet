@@ -67,7 +67,7 @@ const PushNotificationBanner = ({
     return unsubscribe;
   }, []);
 
-  // ─── Escuta mensagens do Service Worker (click em notificação background) ──
+  // ─── Escuta mensagens do Service Worker ou eventos nativos ──────────
   useEffect(() => {
     const handleSWMessage = (event: MessageEvent) => {
       if (event.data?.type === "NOTIFICATION_CLICK") {
@@ -76,9 +76,17 @@ const PushNotificationBanner = ({
       }
     };
 
+    const handleNativeAction = (event: any) => {
+      const action = event.detail || "open_app";
+      onActionClick?.(action);
+    };
+
     navigator.serviceWorker?.addEventListener("message", handleSWMessage);
+    window.addEventListener("push_action", handleNativeAction);
+
     return () => {
       navigator.serviceWorker?.removeEventListener("message", handleSWMessage);
+      window.removeEventListener("push_action", handleNativeAction);
     };
   }, [onActionClick]);
 

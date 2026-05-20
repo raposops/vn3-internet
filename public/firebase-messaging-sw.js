@@ -25,12 +25,12 @@ importScripts(
 // NOTA: Estas credenciais são as mesmas do app principal.
 // Em produção, considere injetar via build step.
 firebase.initializeApp({
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: "",
+  apiKey: "AIzaSyDqCfmi780W095Ckggvk_nXkgAECtQlR4E",
+  authDomain: "vn3-internet.firebaseapp.com",
+  projectId: "vn3-internet",
+  storageBucket: "vn3-internet.firebasestorage.app",
+  messagingSenderId: "782914678496",
+  appId: "1:782914678496:android:e0fe0c16e61eb14873aa85",
 });
 
 const messaging = firebase.messaging();
