@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.vn3.internet',
+  appId: 'central.vn3internet',
   appName: 'VN3 Internet',
   webDir: 'dist',
   plugins: {

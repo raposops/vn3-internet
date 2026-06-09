@@ -1,4 +1,4 @@
-package com.vn3.internet;
+package central.vn3internet;
 
 import com.getcapacitor.BridgeActivity;
 
