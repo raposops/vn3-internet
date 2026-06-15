@@ -3,12 +3,14 @@ workflows:
     name: VN3 Internet iOS App Store
     max_build_duration: 60
     instance_type: mac_mini_m1
+    integrations:
+      app_store_connect: codemagic_integration # <--- ADICIONE ESSAS DUAS LINHAS AQUI
     environment:
       groups:
-        - app_store_credentials # Vamos configurar esse grupo no próximo passo
+        - app_store_credentials
       vars:
-        XCODE_PROJECT: "ios/App/App.xcodeproj" # Caminho real detectado
-        XCODE_SCHEME: "App" # Esquema real detectado
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
       xcode: latest
       cocoapods: default
     triggering:
