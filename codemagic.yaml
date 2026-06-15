@@ -7,9 +7,10 @@ workflows:
       groups:
         - app_store_credentials # Vamos configurar esse grupo no próximo passo
       vars:
-        XCODE_PROJECT: "ios/App/App.xcodeproj"
-        XCODE_SCHEME: "App"
-      xcode: latest # Versão do Xcode na nuvem
+        XCODE_PROJECT: "ios/App/App.xcodeproj" # Caminho real detectado
+        XCODE_SCHEME: "App" # Esquema real detectado
+      xcode: latest
+      cocoapods: default
     triggering:
       events:
         - push
