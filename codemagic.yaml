@@ -9,7 +9,7 @@ workflows:
       vars:
         XCODE_PROJECT: "ios/vn3internet.xcodeproj" # Desenvolvedor deve ajustar se o nome for diferente
         XCODE_SCHEME: "vn3internet" # Desenvolvedor deve ajustar para o scheme correto do projeto
-      xcode: 15.4 # Versão do Xcode na nuvem
+      xcode: latest # Versão do Xcode na nuvem
       cocoapods: default
     triggering:
       events:
