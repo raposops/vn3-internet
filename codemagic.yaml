@@ -34,3 +34,5 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
+    integrations:
+      app_store_connect: codemagic_integration
