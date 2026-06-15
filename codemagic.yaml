@@ -25,15 +25,9 @@ workflows:
       - name: Xcode build and code signing
         script: |
           keychain initialize
-          
-          # Força a busca e criação automática do certificado e do perfil específicos para App Store
           app-store-connect fetch-signing-files "com.vn3internet.app" --type IOS_APP_STORE --create
-          
           keychain add-certificates
-          
-          # Força o Xcode a entender que a distribuição é oficial de loja (App Store)
-          xcode-project use-profiles --export-method app-store
-          
+          xcode-project use-profiles
           xcode-project build-ipa --project="$XCODE_PROJECT" --scheme="$XCODE_SCHEME"
     artifacts:
       - ios/build/build_output/apps/*.ipa
