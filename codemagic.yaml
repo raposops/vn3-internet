@@ -41,12 +41,13 @@ workflows:
             --key-id=$APP_STORE_CONNECT_KEY_IDENTIFIER \
             --private-key=@env:APP_STORE_CONNECT_PRIVATE_KEY
           keychain add-certificates
-          xcode-project use-profiles
+          xcode-project use-profiles --project="$XCODE_PROJECT"
       - name: Build IPA
         script: |
           xcode-project build-ipa \
             --project="$XCODE_PROJECT" \
-            --scheme="$XCODE_SCHEME"
+            --scheme="$XCODE_SCHEME" \
+            --archive-xcargs="CODE_SIGN_STYLE=Automatic"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
