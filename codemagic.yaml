@@ -51,8 +51,3 @@ workflows:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - ios/App/build/build_output/apps/*.ipa
-    publishing:
-      app_store_connect:
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        key: $APP_STORE_CONNECT_PRIVATE_KEY
