@@ -28,11 +28,9 @@ workflows:
           app-store-connect fetch-signing-files "com.vn3internet.app" --type IOS_APP_STORE --create
           keychain add-certificates
           xcode-project use-profiles
-          # Ajustado para --export-method:
           xcode-project build-ipa --project="$XCODE_PROJECT" --scheme="$XCODE_SCHEME" --export-method app-store
     artifacts:
       - ios/build/build_output/apps/*.ipa
     publishing:
       app_store_connect:
         auth: integration
-        code_signing: true # <--- ISSO FORÇA O WORKFLOW A CARREGAR O SEU .P12 GLOBAL
