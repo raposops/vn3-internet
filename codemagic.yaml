@@ -3,6 +3,8 @@ workflows:
     name: VN3 Internet iOS App Store
     max_build_duration: 60
     instance_type: mac_mini_m1
+    integrations:
+      app_store_connect: codemagic_integration
     environment:
       groups:
         - app_store_credentials
@@ -49,3 +51,6 @@ workflows:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - ios/App/build/build_output/apps/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
