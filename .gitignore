@@ -25,3 +25,12 @@ vite.config.ts.timestamp-*
 *.njsproj
 *.sln
 *.sw?
+
+# iOS Signing (NEVER commit these)
+*.cer
+*.pem
+*.p12
+*.p8
+*.key
+*.certSigningRequest
+cert_key
