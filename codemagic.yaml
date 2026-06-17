@@ -29,22 +29,11 @@ workflows:
       - name: Sync Capacitor iOS
         script: |
           npx cap sync ios
-      - name: Set up keychain and certificates
+      - name: Set up keychain
         script: |
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create \
-            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
-            --issuer-id=$APP_STORE_CONNECT_ISSUER_ID \
-            --key-id=$APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --private-key=@env:APP_STORE_CONNECT_PRIVATE_KEY
-          keychain add-certificates
       - name: Build archive
         script: |
-          # Save the API key to a file for xcodebuild authentication
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > /tmp/api_key.p8
-
           xcodebuild -project "$XCODE_PROJECT" \
             -scheme "$XCODE_SCHEME" \
             -sdk iphoneos \
@@ -52,7 +41,7 @@ workflows:
             -archivePath build/ios/App.xcarchive \
             archive \
             -allowProvisioningUpdates \
-            -authenticationKeyPath /tmp/api_key.p8 \
+            -authenticationKeyPath "$APP_STORE_CONNECT_PRIVATE_KEY_PATH" \
             -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
             COMPILER_INDEX_STORE_ENABLE=NO \
@@ -60,7 +49,6 @@ workflows:
             CODE_SIGN_STYLE=Automatic
       - name: Export IPA
         script: |
-          # Create export options plist
           cat > /tmp/ExportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -83,7 +71,7 @@ workflows:
             -exportOptionsPlist /tmp/ExportOptions.plist \
             -exportPath build/ios/ipa \
             -allowProvisioningUpdates \
-            -authenticationKeyPath /tmp/api_key.p8 \
+            -authenticationKeyPath "$APP_STORE_CONNECT_PRIVATE_KEY_PATH" \
             -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
     artifacts:
