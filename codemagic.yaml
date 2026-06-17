@@ -25,12 +25,9 @@ workflows:
       - name: Xcode build and code signing
         script: |
           keychain initialize
+          # Buscamos os arquivos vinculando o bundle ID correto do app da VN3
           app-store-connect fetch-signing-files "com.vn3internet.app" --type IOS_APP_STORE --create
           keychain add-certificates
           xcode-project use-profiles
-          xcode-project build-ipa --project="$XCODE_PROJECT" --scheme="$XCODE_SCHEME"
-    artifacts:
-      - ios/build/build_output/apps/*.ipa
-    publishing:
-      app_store_connect:
-        auth: integration
+          # ADICIONADO O PARAMETRO --export-mode ABAIXO:
+          xcode-project build-ipa --project="$XCODE_PROJECT" --scheme="$XCODE_SCHEME" --export-mode app-store
