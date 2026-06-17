@@ -12,8 +12,8 @@ workflows:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "com.vn3internet.app"
+        TEAM_ID: "4F87WGC937"
       xcode: latest
-
     triggering:
       events:
         - push
@@ -29,8 +29,7 @@ workflows:
       - name: Sync Capacitor iOS
         script: |
           npx cap sync ios
-
-      - name: Set up code signing
+      - name: Set up keychain and certificates
         script: |
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
@@ -41,24 +40,52 @@ workflows:
             --key-id=$APP_STORE_CONNECT_KEY_IDENTIFIER \
             --private-key=@env:APP_STORE_CONNECT_PRIVATE_KEY
           keychain add-certificates
-          xcode-project use-profiles --project="$XCODE_PROJECT"
-      - name: Build IPA
+      - name: Build archive
         script: |
-          ARCHIVE_PATH="build/ios/App.xcarchive"
-          EXPORT_PATH="build/ios/ipa"
+          # Save the API key to a file for xcodebuild authentication
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > /tmp/api_key.p8
 
           xcodebuild -project "$XCODE_PROJECT" \
             -scheme "$XCODE_SCHEME" \
             -sdk iphoneos \
             -configuration Release \
-            -archivePath "$ARCHIVE_PATH" \
+            -archivePath build/ios/App.xcarchive \
             archive \
-            COMPILER_INDEX_STORE_ENABLE=NO
+            -allowProvisioningUpdates \
+            -authenticationKeyPath /tmp/api_key.p8 \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic
+      - name: Export IPA
+        script: |
+          # Create export options plist
+          cat > /tmp/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>$TEAM_ID</string>
+              <key>uploadSymbols</key>
+              <true/>
+              <key>signingStyle</key>
+              <string>automatic</string>
+          </dict>
+          </plist>
+          EOF
 
           xcodebuild -exportArchive \
-            -archivePath "$ARCHIVE_PATH" \
-            -exportOptionsPlist /Users/builder/export_options.plist \
-            -exportPath "$EXPORT_PATH"
+            -archivePath build/ios/App.xcarchive \
+            -exportOptionsPlist /tmp/ExportOptions.plist \
+            -exportPath build/ios/ipa \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath /tmp/api_key.p8 \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
