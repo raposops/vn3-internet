@@ -25,10 +25,17 @@ workflows:
       - name: Xcode build and code signing
         script: |
           keychain initialize
+          
+          # 1. Buscamos os perfis de provisionamento oficiais da App Store na Apple
           app-store-connect fetch-signing-files "com.vn3internet.app" --type IOS_APP_STORE --create
+          
+          # 2. Forçamos o Codemagic a injetar o certificado .p12 global na máquina de build
           keychain add-certificates
+          
           xcode-project use-profiles
-          xcode-project build-ipa --project="$XCODE_PROJECT" --scheme="$XCODE_SCHEME" --export-method app-store
+          
+          # 3. Build limpo sem parâmetros fantasmas (o export nativo lê o perfil gerado pelo use-profiles)
+          xcode-project build-ipa --project="$XCODE_PROJECT" --scheme="$XCODE_SCHEME"
     artifacts:
       - ios/build/build_output/apps/*.ipa
     publishing:
