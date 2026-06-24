@@ -34,3 +34,6 @@ vite.config.ts.timestamp-*
 *.key
 *.certSigningRequest
 cert_key
+
+# Supabase CLI temp files
+supabase/.temp/
