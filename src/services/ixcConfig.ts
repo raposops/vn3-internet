@@ -5,9 +5,12 @@
 
 // ─── Endpoint base da API (Backend Proxy) ─────────────────────
 // Em Dev: Usa o proxy seguro do Vite (/ixc-api).
-// Em Prod: Aponta para sua Serverless/Edge Function real.
+// Em Prod: Aponta para a Supabase Edge Function (ixc-proxy).
+//   → VITE_SUPABASE_PROXY_URL = https://<project>.supabase.co/functions/v1/ixc-proxy
 const isDev = import.meta.env.DEV;
-export const API_URL = isDev ? "/ixc-api" : (import.meta.env.VITE_API_URL || "https://sua-edge-function.com/api");
+export const API_URL = isDev
+  ? "/ixc-api"
+  : (import.meta.env.VITE_SUPABASE_PROXY_URL || import.meta.env.VITE_API_URL || "https://4419.ixcsoft.com/webservice/v1");
 
 // ─── Headers Padrão ───────────────────────────────────────────
 // A autenticação Master (Token IXC) agora fica apenas no backend.
@@ -17,4 +20,5 @@ export const DEFAULT_HEADERS = {
 } as const;
 
 // ─── Timeout padrão (ms) ─────────────────────────────────────
-export const API_TIMEOUT = 15_000;
+// 30s para cobrir latência internacional (revisores Apple ficam nos EUA)
+export const API_TIMEOUT = 30_000;

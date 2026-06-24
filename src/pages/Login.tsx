@@ -113,16 +113,24 @@ const Login = () => {
     } catch (error: any) {
       setIsLoading(false);
 
-      let mensagem = "Não foi possível conectar. Verifique sua internet e tente novamente.";
+      let mensagem = "Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.";
 
-      if (error.response) {
+      // Timeout ou conexão cancelada
+      if (
+        error.code === "ECONNABORTED" ||
+        error.code === "ERR_NETWORK" ||
+        error.message?.toLowerCase().includes("timeout")
+      ) {
+        mensagem = "O servidor demorou muito para responder (timeout). Tente novamente em instantes.";
+      } else if (error.response) {
         if (error.response.status === 401 || error.response.status === 403) {
           mensagem = "Falha de autorização (Token inválido ou expirado). Contate o suporte.";
         } else {
           mensagem = `O sistema está temporariamente indisponível (Erro ${error.response.status}).`;
         }
       } else if (error.request) {
-        mensagem = "O servidor demorou muito para responder. Tente novamente mais tarde.";
+        // Requisição enviada mas sem resposta (servidor inacessível)
+        mensagem = "Não foi possível alcançar o servidor. Verifique sua conexão e tente novamente.";
       }
 
       setErrorMsg(mensagem);
