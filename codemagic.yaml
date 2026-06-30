@@ -12,6 +12,15 @@ workflows:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "com.vn3internet.app"
+        # ── Vite env vars (injetadas no build) ──
+        VITE_SUPABASE_PROXY_URL: "https://zqdcoaadqxrpnhsxevac.supabase.co/functions/v1/ixc-proxy"
+        VITE_API_URL: "https://4419.ixcsoft.com/webservice/v1"
+        VITE_FIREBASE_API_KEY: "AIzaSyDqCfmi780W095Ckggvk_nXkgAECtQlR4E"
+        VITE_FIREBASE_AUTH_DOMAIN: "vn3-internet.firebaseapp.com"
+        VITE_FIREBASE_PROJECT_ID: "vn3-internet"
+        VITE_FIREBASE_STORAGE_BUCKET: "vn3-internet.firebasestorage.app"
+        VITE_FIREBASE_MESSAGING_SENDER_ID: "782914678496"
+        VITE_FIREBASE_APP_ID: "1:782914678496:android:e0fe0c16e61eb14873aa85"
       xcode: latest
     triggering:
       events:
@@ -19,6 +28,18 @@ workflows:
       branch_patterns:
         - pattern: 'main'
     scripts:
+      - name: Create .env for Vite build
+        script: |
+          echo "VITE_SUPABASE_PROXY_URL=$VITE_SUPABASE_PROXY_URL" > .env
+          echo "VITE_API_URL=$VITE_API_URL" >> .env
+          echo "VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY" >> .env
+          echo "VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN" >> .env
+          echo "VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID" >> .env
+          echo "VITE_FIREBASE_STORAGE_BUCKET=$VITE_FIREBASE_STORAGE_BUCKET" >> .env
+          echo "VITE_FIREBASE_MESSAGING_SENDER_ID=$VITE_FIREBASE_MESSAGING_SENDER_ID" >> .env
+          echo "VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID" >> .env
+          echo "── .env criado para build ──"
+          cat .env
       - name: Install npm dependencies
         script: |
           npm install

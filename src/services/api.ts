@@ -80,15 +80,15 @@ api.interceptors.response.use(
       switch (status) {
         case 401:
           console.error("[API] Não autorizado — token inválido ou expirado.");
-          // Aviso claro ao usuário conforme solicitado
-          alert("Sua sessão expirou ou o token de acesso é inválido. Por favor, faça login novamente.");
-          import("./storageService").then(({ storageService }) => {
-            storageService.remove("ixc_cliente_token");
-            storageService.remove("ixc_cliente_data");
-            storageService.remove("isLoggedIn");
-          });
-          // Redireciona para login se não estiver lá
+          // Só mostra alert e redireciona se NÃO estiver na tela de login.
+          // O Login.tsx já trata 401/403 com mensagem estilizada própria.
           if (window.location.pathname !== "/login") {
+            alert("Sua sessão expirou ou o token de acesso é inválido. Por favor, faça login novamente.");
+            import("./storageService").then(({ storageService }) => {
+              storageService.remove("ixc_cliente_token");
+              storageService.remove("ixc_cliente_data");
+              storageService.remove("isLoggedIn");
+            });
             window.location.href = "/login";
           }
           break;
