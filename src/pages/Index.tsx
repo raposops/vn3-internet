@@ -1012,7 +1012,7 @@ const Index = () => {
         />
 
         {/* Content Layer */}
-        <div className="relative z-10 flex h-full min-h-[180px] items-center gap-5 p-6">
+        <div className="relative z-10 flex h-full min-h-[180px] items-center gap-4 p-5 sm:p-6">
           {/* Icon */}
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-md border border-white/20">
             <svg viewBox="0 0 32 32" className="h-7 w-7 fill-cyan-300" aria-hidden="true">
@@ -1022,14 +1022,14 @@ const Index = () => {
           </div>
 
           {/* Text Content */}
-          <div className="flex-1">
-            <p className="text-sm font-medium text-cyan-300 tracking-wide uppercase">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs sm:text-sm font-medium text-cyan-300 tracking-wide uppercase">
               Fale Conosco
             </p>
-            <p className="mt-1 text-3xl font-extrabold text-white tracking-tight">
+            <p className="mt-0.5 text-2xl sm:text-3xl font-extrabold text-white tracking-tight whitespace-nowrap">
               51 99809-3480
             </p>
-            <p className="mt-1 text-sm text-white/70">
+            <p className="mt-1 text-xs sm:text-sm text-white/70">
               Atendimento 24h • Via WhatsApp
             </p>
           </div>
